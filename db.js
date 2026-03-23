@@ -8,7 +8,7 @@ async function initDB() {
     database: process.env.DATABASE_NAME, // neondb
     user: process.env.DATABASE_USER,     // neondb_owner
     password: process.env.DATABASE_PASSWORD,
-    port: 5432,                          // <--- KEEP THIS 5432
+    port: 5432,                          
     ssl: 'require',
   });
 
