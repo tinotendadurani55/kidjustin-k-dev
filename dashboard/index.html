@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kidjustin-Shop — Admin Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0d0d0d; color: #eee; min-height: 100vh; }
+  header { background: #111; border-bottom: 1px solid #222; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 1.2rem; color: #25D366; font-weight: 700; }
+  header span { color: #666; font-size: 0.85rem; }
+  .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 20px 24px; }
+  .stat-card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 16px; }
+  .stat-card .label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .stat-card .value { font-size: 1.6rem; font-weight: 700; color: #fff; }
+  .stat-card .value.green { color: #25D366; }
+  .stat-card .value.yellow { color: #f0c040; }
+  .section { padding: 0 24px 24px; }
+  .section h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; color: #555; margin-bottom: 14px; padding-top: 8px; }
+  .client-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .client-card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 18px; transition: border-color 0.2s; }
+  .client-card:hover { border-color: #333; }
+  .client-card .top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .client-card .name { font-weight: 600; font-size: 1rem; color: #fff; }
+  .client-card .number { font-size: 0.78rem; color: #555; margin-top: 2px; }
+  .badge { font-size: 0.7rem; padding: 3px 9px; border-radius: 20px; font-weight: 600; text-transform: uppercase; }
+  .badge.active { background: #0d3320; color: #25D366; }
+  .badge.suspended { background: #3d1010; color: #f66; }
+  .badge.pending { background: #2d2810; color: #f0c040; }
+  .badge.expired { background: #222; color: #555; }
+  .badge.basic { background: #1a1a2e; color: #6c8ebf; }
+  .badge.pro { background: #1a2e1a; color: #82b366; }
+  .badge.premium { background: #2e1a2e; color: #b36bbf; }
+  .client-card .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .days-bar { background: #222; border-radius: 4px; height: 4px; overflow: hidden; margin-bottom: 8px; }
+  .days-bar .fill { height: 100%; border-radius: 4px; background: #25D366; transition: width 0.5s; }
+  .days-bar .fill.warn { background: #f0c040; }
+  .days-bar .fill.danger { background: #f66; }
+  .client-card .expires { font-size: 0.75rem; color: #555; }
+  .client-card .revenue { font-size: 0.8rem; color: #888; margin-top: 4px; }
+  .refresh-btn { background: none; border: 1px solid #333; color: #888; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+  .refresh-btn:hover { border-color: #25D366; color: #25D366; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px 10px; }
+  .top-bar h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+  .empty { color: #444; text-align: center; padding: 40px; font-size: 0.9rem; }
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #25D366; animation: pulse 2s infinite; margin-right: 6px; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)} }
+  .footer { text-align: center; padding: 20px; color: #333; font-size: 0.75rem; border-top: 1px solid #1a1a1a; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🏪 Kidjustin-Shop</h1>
+    <span id="uptime-label"><span class="pulse"></span>Loading...</span>
+  </div>
+</header>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-card">
+    <div class="label">Capacity</div>
+    <div class="value green" id="stat-active">—</div>
+    <div class="days-bar" style="margin-top:8px"><div class="fill" id="capacity-bar" style="width:0%"></div></div>
+    <div style="font-size:0.72rem;color:#555;margin-top:4px" id="capacity-label">of 7 slots used</div>
+  </div>
+  <div class="stat-card"><div class="label">Bots Running</div><div class="value" id="stat-bots">—</div></div>
+  <div class="stat-card"><div class="label">Monthly Revenue</div><div class="value green" id="stat-monthly">—</div></div>
+  <div class="stat-card"><div class="label">Total Revenue</div><div class="value" id="stat-total">—</div></div>
+  <div class="stat-card"><div class="label">Memory</div><div class="value yellow" id="stat-memory">—</div></div>
+</div>
+
+<div class="top-bar">
+  <h2>All Clients</h2>
+  <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+</div>
+
+<div class="section">
+  <div class="client-grid" id="client-grid">
+    <div class="empty">Loading clients...</div>
+  </div>
+</div>
+
+<div class="footer">Kidjustin-Shop v1.0 — Admin Dashboard</div>
+
+<script>
+const PLAN_PRICES = { basic: 3, pro: 5, premium: 7 };
+
+function daysLeft(expiresAt) {
+  const diff = new Date(expiresAt) - new Date();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+async function loadData() {
+  try {
+    const [clientsRes, statusRes] = await Promise.all([
+      fetch('/api/clients').then(r => r.json()),
+      fetch('/api/status').then(r => r.json()),
+    ]);
+
+    const { businesses, stats } = clientsRes;
+
+    const activeCount = businesses.filter(b => b.status === 'active').length;
+    const maxClients = statusRes.maxClients || 7;
+    const pctUsed = Math.min(100, (activeCount / maxClients) * 100);
+    document.getElementById('stat-active').textContent = `${activeCount} / ${maxClients}`;
+    document.getElementById('capacity-bar').style.width = pctUsed + '%';
+    document.getElementById('capacity-bar').className = 'fill' + (pctUsed >= 100 ? ' danger' : pctUsed >= 70 ? ' warn' : '');
+    document.getElementById('capacity-label').textContent = `of ${maxClients} slots used`;
+    document.getElementById('stat-bots').textContent = statusRes.runningBots;
+    document.getElementById('stat-monthly').textContent = '$' + parseFloat(stats?.monthly_revenue || 0).toFixed(2);
+    document.getElementById('stat-total').textContent = '$' + parseFloat(stats?.total_revenue || 0).toFixed(2);
+    document.getElementById('stat-memory').textContent = statusRes.memory + 'MB';
+
+    const h = Math.floor(statusRes.uptime / 3600);
+    const m = Math.floor((statusRes.uptime % 3600) / 60);
+    document.getElementById('uptime-label').innerHTML = `<span class="pulse"></span>Online · Uptime ${h}h ${m}m`;
+
+    const grid = document.getElementById('client-grid');
+    if (!businesses.length) {
+      grid.innerHTML = '<div class="empty">No clients yet. Add one using WhatsApp: .addclient [number] [name] [plan]</div>';
+      return;
+    }
+
+    grid.innerHTML = businesses.map(b => {
+      const days = daysLeft(b.expires_at);
+      const pct = Math.min(100, (days / 30) * 100);
+      const fillClass = days <= 3 ? 'danger' : days <= 7 ? 'warn' : '';
+      const price = PLAN_PRICES[b.plan] || '?';
+      return `
+        <div class="client-card">
+          <div class="top">
+            <div>
+              <div class="name">${b.owner_name}</div>
+              <div class="number">${b.wa_number}</div>
+            </div>
+            <span class="badge ${b.status}">${b.status}</span>
+          </div>
+          <div class="meta">
+            <span class="badge ${b.plan}">${b.plan?.toUpperCase()} · $${price}/mo</span>
+          </div>
+          <div class="days-bar"><div class="fill ${fillClass}" style="width:${pct}%"></div></div>
+          <div class="expires">⏳ ${days} day${days !== 1 ? 's' : ''} left · Expires ${formatDate(b.expires_at)}</div>
+          <div class="revenue">💰 Total paid: $${parseFloat(b.total_paid || 0).toFixed(2)}</div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    document.getElementById('client-grid').innerHTML = '<div class="empty">Error loading data. Is the server running?</div>';
+  }
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>
+

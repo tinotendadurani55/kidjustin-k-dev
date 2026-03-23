@@ -1,14 +1,15 @@
 {
-  "name": "kidjustin-mini-pair",
+  "name": "kidjustin-shop",
   "version": "1.0.0",
-  "description": "Lightweight Session Generator & Mini Bot",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "scripts": { "start": "node index.js" },
+  "engines": { "node": ">=20.0.0" },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.6.0",
-    "pino": "^8.16.1",
-    "qrcode-terminal": "^0.12.0"
+    "@whiskeysockets/baileys": "^6.7.9",
+    "express": "^4.18.2",
+    "postgres": "^3.4.0",
+    "qrcode": "^1.5.3",
+    "pino": "^8.21.0",
+    "dotenv": "^16.4.5"
   }
 }
