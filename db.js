@@ -3,14 +3,15 @@ const postgres = require('postgres');
 let sql;
 
 async function initDB() {
-  sql = postgres({
-    host: process.env.DATABASE_HOST,
-    database: process.env.DATABASE_NAME,
-    username: process.env.DATABASE_USER,
+    sql = postgres({
+    host: process.env.DATABASE_HOST,     // ep-late-mode...
+    database: process.env.DATABASE_NAME, // neondb
+    user: process.env.DATABASE_USER,     // neondb_owner
     password: process.env.DATABASE_PASSWORD,
-    ssl: { rejectUnauthorized: false },
-    max: 10,
+    port: 5432,                          // <--- KEEP THIS 5432
+    ssl: 'require',
   });
+
 
   await sql`
     CREATE TABLE IF NOT EXISTS businesses (
