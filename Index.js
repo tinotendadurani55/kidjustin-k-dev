@@ -4,11 +4,15 @@ const fs = require("fs");
 const { Pool } = require('pg');
 const http = require('http');
 
-// --- KEEP ALIVE FOR UPTIMEROBOT ---
+// --- KEEP ALIVE FOR UPTIMEROBOT & RENDER PORT BINDING ---
+const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
   res.write("Bot is running!");
   res.end();
-}).listen(process.env.PORT || 3000);
+}).listen(port, '0.0.0.0', () => {
+    console.log(`✅ Web server listening on port ${port}`);
+});
 
 // --- DATABASE CONFIGURATION ---
 const pool = new Pool({
