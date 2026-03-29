@@ -1,7 +1,6 @@
 FROM node:20-slim
 
 # Install system dependencies
-# We add python3 and build-essential in case any npm packages need compiling
 RUN apt-get update && apt-get install -y \
     git \
     ffmpeg \
@@ -12,21 +11,28 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy only package files first to leverage Docker cache
+# Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies (ignoring devDependencies for a smaller image)
+# Install production dependencies
 RUN npm install --production
 
-# Copy the rest of your bot's files
+# Copy the rest of the files
 COPY . .
 
-# Ensure necessary directories exist for local storage
-RUN mkdir -p session downloads
+# Create directories and set permissions
+RUN mkdir -p session downloads && chmod 777 session downloads
 
-# Set Environment to production
+# Set Environment
 ENV NODE_ENV=production
+# Match your code's default port
+ENV PORT=3000
 
-EXPOSE 8000
+# Inform Docker which port the container listens on
+EXPOSE 3000
+
+# Optional: Healthcheck using the http server you wrote
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3000), (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
 
 CMD ["node", "index.js"]
