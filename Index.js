@@ -2,38 +2,30 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, delay } 
 const pino = require("pino");
 const fs = require("fs");
 const { Pool } = require('pg');
+const http = require('http');
+
+// --- KEEP ALIVE FOR UPTIMEROBOT ---
+http.createServer((req, res) => {
+  res.write("Bot is running!");
+  res.end();
+}).listen(process.env.PORT || 3000);
 
 // --- DATABASE CONFIGURATION ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
-// Quick DB Test
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error("❌ DB Connection Error:", err.stack);
-  } else {
-    console.log("✅ Database Connected at:", res.rows[0].now);
-  }
-});
+// Ensure session directory exists
+if (!fs.existsSync('./session')) fs.mkdirSync('./session');
 
-// Ensure the session directory exists
-if (!fs.existsSync('./session')) {
-    fs.mkdirSync('./session');
-}
-
-// --- SESSION RESTORATION LOGIC ---
+// --- SESSION RESTORATION ---
 if (process.env.SESSION_ID && !fs.existsSync('./session/creds.json')) {
     try {
         const base64Data = process.env.SESSION_ID.includes('~') 
             ? process.env.SESSION_ID.split('~')[1] 
             : process.env.SESSION_ID;
-            
-        const decodedCreds = Buffer.from(base64Data, 'base64').toString('utf-8');
-        fs.writeFileSync('./session/creds.json', decodedCreds);
+        fs.writeFileSync('./session/creds.json', Buffer.from(base64Data, 'base64').toString('utf-8'));
         console.log("✅ Session restored from Environment Variable");
     } catch (e) {
         console.log("❌ Failed to restore session:", e.message);
@@ -52,21 +44,23 @@ async function startMiniBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // --- CONNECTION HANDLER ---
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
 
-        if (connection === 'connecting') {
-            console.log("⏳ Handshake starting...");
-        }
+        if (connection === 'connecting') console.log("⏳ Handshake starting...");
 
         if (connection === 'open') {
             console.log("\n✅ MINI-BOT ONLINE!");
 
+            // Show Session ID only if we aren't already using one from ENV
             if (!process.env.SESSION_ID) {
-                const creds = JSON.parse(fs.readFileSync('./session/creds.json'));
-                const sessionID = Buffer.from(JSON.stringify(creds)).toString('base64');
-                console.log(`\n╔════════════════════════════════════╗\n  YOUR SESSION_ID:\n\n  Kidjustin-k~${sessionID}\n╚════════════════════════════════════╝\n`);
+                try {
+                    const creds = JSON.parse(fs.readFileSync('./session/creds.json'));
+                    const sessionID = Buffer.from(JSON.stringify(creds)).toString('base64');
+                    console.log(`\n╔════════════════════════════════════╗\n  NEW SESSION_ID:\n\n  Kidjustin-k~${sessionID}\n╚════════════════════════════════════╝\n`);
+                } catch (err) {
+                    console.log("Could not generate session ID string.");
+                }
             }
         }
 
@@ -77,21 +71,9 @@ async function startMiniBot() {
         }
     });
 
-    // --- PAIRING LOGIC ---
-    if (!sock.authState.creds.registered) {
-        setTimeout(async () => {
-            try {
-                // Uses Env phone or falls back to your hardcoded one
-                const targetPhone = process.env.PHONE_NUMBER || "263777426534";
-                const code = await sock.requestPairingCode(targetPhone);
-                console.log(`\n📱 YOUR PAIRING CODE: ${code}\n`);
-            } catch (err) {
-                console.error("Pairing request failed:", err.message);
-            }
-        }, 5000);
-    }
+    // --- REMOVED PAIRING LOGIC TO PREVENT CRASHES ---
+    // If you need a new session, do it in Termux first, then update the SESSION_ID env.
 
-    // --- MESSAGES HANDLER ---
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
         if (!msg.message || msg.key.fromMe) return;
@@ -103,12 +85,10 @@ async function startMiniBot() {
         if (!text.startsWith(prefix)) return;
         const cmd = text.slice(1).trim().toLowerCase();
 
-        // Example Command using DB
         if (cmd === 'ping') {
             await sock.sendMessage(remoteJid, { text: "Mini-Bot is Active! ⚡" }, { quoted: msg });
         }
         
-        // Example: Get time from DB via WhatsApp
         if (cmd === 'dbtime') {
             const result = await pool.query('SELECT NOW()');
             await sock.sendMessage(remoteJid, { text: `DB Time: ${result.rows[0].now}` }, { quoted: msg });
