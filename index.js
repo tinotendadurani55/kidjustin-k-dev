@@ -1,20 +1,28 @@
+require('dotenv').config(); // Load variables from .env
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, delay } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 const fs = require("fs");
+const { Pool } = require('pg');
+
+// Initialize Database using the URL from .env
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+});
 
 async function startMiniBot() {
     const sessionDir = './session';
-    fs.mkdirSync(sessionDir, { recursive: true });
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
-    // Load session from SESSION_ID env if set
+    // --- SESSION_ID LOGIC ---
     if (process.env.SESSION_ID) {
         try {
-            const raw = process.env.SESSION_ID.replace(/^Kidjustin-k~/, '');
-            const credsJson = Buffer.from(raw, 'base64').toString('utf8');
+            const base64Data = process.env.SESSION_ID.split('Kidjustin-k~')[1] || process.env.SESSION_ID;
+            const credsJson = Buffer.from(base64Data, 'base64').toString('utf8');
             fs.writeFileSync(`${sessionDir}/creds.json`, credsJson);
-            console.log('✅ Session loaded from SESSION_ID env');
+            console.log('✅ Session restored from Environment Variable');
         } catch (e) {
-            console.error('❌ Failed to load SESSION_ID:', e.message);
+            console.error('❌ SESSION_ID Error:', e.message);
         }
     }
 
@@ -29,23 +37,37 @@ async function startMiniBot() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Only request pairing code if no session was loaded
+    // --- PAIRING CODE LOGIC ---
     if (!sock.authState.creds.registered) {
-        console.log("⏳ Waiting 5 seconds for handshake...");
+        console.log("⏳ Handshake starting...");
         await delay(5000);
-        const code = await sock.requestPairingCode("263777426534");
+        // Uses phone number from .env
+        const code = await sock.requestPairingCode(process.env.PHONE_NUMBER || "263777426534");
         console.log(`\n📱 YOUR PAIRING CODE: ${code}\n`);
     }
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
+        
         if (connection === 'open') {
             console.log("\n✅ MINI-BOT ONLINE!");
-
-            const creds = JSON.parse(fs.readFileSync(`${sessionDir}/creds.json`));
-            const sessionID = Buffer.from(JSON.stringify(creds)).toString('base64');
-            console.log(`\n╔════════════════════════════════════╗\n  YOUR SESSION_ID (Copy everything below):\n\n  Kidjustin-k~${sessionID}\n╚════════════════════════════════════╝\n`);
+            
+            // Test Database Connection
+            try {
+                const res = await pool.query('SELECT NOW()');
+                console.log("🗄️  DATABASE CONNECTED:", res.rows[0].now);
+            } catch (err) {
+                console.error("🗄️  DATABASE ERROR:", err.message);
+            }
         }
+
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) start
+            if (shouldReconnect) startMiniBot();
+        }
+    });
+
+    return sock;
+}
+
+startMiniBot();
