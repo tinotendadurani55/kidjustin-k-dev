@@ -119,7 +119,7 @@ const config = {
     ownerNumber: (process.env.OWNER_NUMBER || '263784765899').replace(/[^\d]/g, ''),
     prefix: process.env.PREFIX || '!',
     mode: process.env.MODE || 'public',
-    reportNumber: process.env.REPORT_NUMBER || '0777426534',
+    reportNumber: process.env.REPORT_NUMBER || '0784765899',
     sessionId: process.env.SESSION_ID // base64-encoded creds.json for session restoration
 };
 
