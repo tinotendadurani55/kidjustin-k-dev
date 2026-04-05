@@ -1,0 +1,30 @@
+# Dependencies (reinstalled inside container)
+node_modules/
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Replit workspace files
+.replit
+.replitignore
+.npmrc
+tsconfig*.json
+artifacts/
+scripts/
+lib/
+
+# Runtime data (should not be baked into image)
+session/
+downloads/
+database.json
+
+# Secrets / environment
+.env
+.env.*
+
+# Version control
+.git/
+.gitignore
+
+# Logs and temp files
+*.log
+npm-debug.log*
