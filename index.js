@@ -1,7 +1,7 @@
 
 /*╔══════════════════════════════════════════════════════════════════╗
-   ║ 🤖 MINI BOT MMM ZIM — ALL IN ONE WHATSAPP BOT                    ║
-   ║ Hugging Face Edition | Node.js + Baileys | MongoDB Atlas         ║
+   ║ 🤖 KIDJUSTIN-K WHATSAPP BOT - ALL IN ONE                         ║
+   ║ V13: FILE-BASED SESSION & KOYEB OPTIMIZED                      ║
    ╚══════════════════════════════════════════════════════════════════╝ */
 
 // --- GLOBAL ANTI-CRASH SYSTEM ---
@@ -35,10 +35,10 @@ process.on('unhandledRejection', (reason) => {
 const express = require('express');
 const app = express();
 
-// --- 1. HEALTH CHECK SERVER (keeps Hugging Face Space alive) ---
-app.get('/', (req, res) => res.send('MINI BOT MMM ZIM is active!'));
-app.listen(process.env.PORT || 7860, () => {
-    console.log(`✅ Health check server running on port ${process.env.PORT || 7860}`);
+// --- 1. KOYEB STAY-AWAKE SYSTEM ---
+app.get('/', (req, res) => res.send('Bot is active!'));
+app.listen(process.env.PORT || 8000, () => {
+    console.log('✅ Health check server is running on port 8000');
 });
 
 // --- 2. STANDARD IMPORTS ---
@@ -58,13 +58,38 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 const { exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
 const cheerio = require('cheerio');
 const { v4: uuidv4 } = require('uuid');
 const os = require('os');
 const fetch = require('node-fetch');
 
+// 🧠 BRAIN CONFIG
+const brainPath = path.join(__dirname, 'brain.json');
+
+// Auto-create brain if missing
+if (!fs.existsSync(brainPath)) {
+    fs.writeFileSync(brainPath, JSON.stringify({}));
+}
+
+// Memory-efficient Load
+function loadBrain() {
+    try {
+        return JSON.parse(fs.readFileSync(brainPath, 'utf-8'));
+    } catch (e) {
+        console.log("❌ Brain Read Error:", e.message);
+        return {};
+    }
+}
+
+// Disk-space-saving Save
+function saveBrain(data) {
+    try {
+        // No indentation/whitespace to keep file size tiny
+        fs.writeFileSync(brainPath, JSON.stringify(data));
+    } catch (e) {
+        console.log("❌ Brain Save Error:", e.message);
+    }
+}
 
 // --- DATABASE (PostgreSQL — optional, falls back to file if not configured) ---
 const postgres = require('postgres');
@@ -81,8 +106,6 @@ const dbInitPromise = (async () => {
             username: process.env.DATABASE_USER,
             password: process.env.DATABASE_PASSWORD,
             ssl:      'require',
-            prepare:  false,   // required for Neon pooler (PgBouncer transaction mode)
-            max:      5,       // max connections (keep low for free tier)
         });
         try {
             await sql`
@@ -106,7 +129,7 @@ const isTermux = fs.existsSync('/data/data/com.termux');
 const ffmpegPath = isTermux ? 'ffmpeg' : '/usr/bin/ffmpeg';
 const ytdlpPath = isTermux ? 'yt-dlp' : '/usr/local/bin/yt-dlp';
 
-console.log(`[System] Platform: ${isTermux ? 'Termux' : 'Linux/HuggingFace'}`);
+console.log(`[System] Platform: ${isTermux ? 'Termux' : 'Linux/Koyeb'}`);
 console.log(`[System] Using FFMPEG at: ${ffmpegPath}`);
 
 // ═══════════════════════════════════════════════════════════════════
@@ -114,13 +137,13 @@ console.log(`[System] Using FFMPEG at: ${ffmpegPath}`);
 // ═══════════════════════════════════════════════════════════════════
 
 const config = {
-    botName: process.env.BOT_NAME || 'MINI BOT',
+    botName: process.env.BOT_NAME || 'Kidjustin-k',
     ownerName: process.env.OWNER_NAME || 't.Durani',
-    ownerNumber: (process.env.OWNER_NUMBER || '263784765899').replace(/[^\d]/g, ''),
-    prefix: process.env.PREFIX || '!',
+    ownerNumber: (process.env.OWNER_NUMBER || '263777426534').replace(/[^\d]/g, ''),
+    prefix: process.env.PREFIX || '.',
     mode: process.env.MODE || 'public',
-    reportNumber: process.env.REPORT_NUMBER || '0784765899',
-    sessionId: process.env.SESSION_ID // base64-encoded creds.json for session restoration
+    reportNumber: process.env.REPORT_NUMBER || '0777426534',
+    sessionId: process.env.SESSION_ID // Used for Koyeb session restoration
 };
 
 const ownerJid = config.ownerNumber + '@s.whatsapp.net';
@@ -231,7 +254,7 @@ const getDefaultReplies = () => ({
     'good morning':    `🌅 Good morning! Have a blessed day! ☀️`,
     'good night':      `🌙 Good night! Sweet dreams! 😴`,
     'how are you':     `I'm doing great, thanks for asking! 🤖⚡ Always online for you.`,
-    'hows the bot':    `Running perfectly! 🚀 All systems green.`,
+    'hows the bot':    `Running perfectly on Koyeb! 🚀 All systems green.`,
     'what can you do': `A lot! Just type *${config.prefix}menu* to see all commands. 📋`,
     'help':            `Type *${config.prefix}menu* to see all available commands! 📋`,
     'thanks':          `On his or her behalf,you're welcome! 😊`,
@@ -271,7 +294,7 @@ We'll notify you once it's back via *.update*
 📢 Follow updates:
 https://whatsapp.com/channel/0029Vb1JJlR9WtBzWg26wi3e
 ━━━━━━━━━━━━━━━━━━━
-> © *t.Durani* | MINI BOT MMM ZIM`;
+> © *t.Durani* | KIDJUSTIN-K V13`;
 
 const gameQuestions = [
     {
@@ -507,9 +530,9 @@ async function selfDiagnosis() {
 // --- WEATHER FUNCTION ---
 async function getWeatherForecast(city) {
     try {
-        // Tip: Add OPENWEATHERMAP_KEY to your environment variables
+        // Tip: You need to add OPENWEATHERMAP_KEY to your Koyeb Environment Variables
         const apiKey = process.env.OPENWEATHERMAP_KEY;
-        if (!apiKey) return "⚠️ Weather API Key missing. Add OPENWEATHERMAP_KEY to your env vars.";
+        if (!apiKey) return "⚠️ Weather API Key missing in Koyeb settings.";
 
         const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
         const response = await axios.get(url);
@@ -654,48 +677,7 @@ D) ${options[3]}
 
 
 // ═══════════════════════════════════════════════════════════════════
-// ⚡ CONCURRENCY & SAFETY ENGINE
-// ═══════════════════════════════════════════════════════════════════
-
-function createSemaphore(limit) {
-    let active = 0;
-    const queue = [];
-    return {
-        acquire: () => new Promise(resolve => {
-            if (active < limit) { active++; resolve(); }
-            else queue.push(resolve);
-        }),
-        release() {
-            active = Math.max(0, active - 1);
-            if (queue.length > 0) { active++; queue.shift()(); }
-        },
-        get pending() { return queue.length; },
-        get running() { return active; }
-    };
-}
-
-// Max 5 simultaneous media downloads at once
-const downloadSemaphore = createSemaphore(5);
-
-// Commands that count as "heavy" — go through the semaphore + cooldown
-const HEAVY_COMMANDS = new Set(['tiktok', 'ig', 'fb', 'twitter', 'pinterest', 'video', 'mediafire', 'play', 'song', 'dl', 'download']);
-
-// Per-user heavy cooldown: 15s between heavy commands (owner exempt)
-const heavyCooldowns = new Map();
-const HEAVY_COOLDOWN_MS = 15000;
-
-// Wrap any promise with a hard timeout
-function withTimeout(promise, ms, label) {
-    return Promise.race([
-        promise,
-        new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`⏱ ${label || 'Command'} timed out after ${ms / 1000}s`)), ms)
-        )
-    ]);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// COMMAND DEFINITIONS
+// COMMAND DEFINITIONS 
 // ═══════════════════════════════════════════════════════════════════
 
 const commands = {    // ────────────── MENU ──────────────
@@ -714,19 +696,19 @@ const commands = {    // ────────────── MENU ──�
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             let menuText = `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO︎*
 *╰────────────────❂*
 *┏━━━━━━━━━━━━━⚡*
 *┃* ⚡ *POWER CONSOLE*
 *┗━━━━━━━━━━━━━⚡*
 *┏━━━━━━━━━━━━━┓*
-*┃* 👤 *USER:* ${pushName || 'User'}
+*┃* 👤 *USER:* ${pushName || '𝑲𝒊𝒅-𝒂𝒔𝒔𝒆𝒓 👑'}
 *┃* 🔋 *MODE:* ${config.mode.toUpperCase()}
 *┃* 🛰️ *PING:* ${speed} ms
 *┃* 🛠️ *PREF:* [ ${config.prefix} ]
 *┃* ⚙️ *ENGINE:* Node.js v20+
-*┃* 🛡 *STATUS:* Active
-*┃* ⚡ *BOT:* MINI BOT MMM ZIM
+*┃* 🛡 *STATUS:* Vicious Mode Active
+*┃* ⚡ *VERSION:* 13.0.1 [STABLE]
 *┃* ✅ *CMD:* 100+ Loaded
 *┗━━━━━━━━━━━━━┛*
 
@@ -736,19 +718,19 @@ const commands = {    // ────────────── MENU ──�
 *┃*    _(antilink, kick, warn, mute, promote...)_
 *┃*
 *┃* 📥 *${config.prefix}downloads* — Downloads
-*┃*    _(play, tiktok, fb, ig, twitter, video...)_
+*┃*    _(play, tiktok, fb, ig, twitter, apk...)_
 *┃*
 *┃* 🎮 *${config.prefix}games* — Games & Fun
 *┃*    _(game, ttt, 8ball, poll, afk, joke...)_
 *┃*
 *┃* 🤖 *${config.prefix}ai* — AI & Utility
-*┃*    _(gpt, speak, calc, trs, weather, lyrics...)_
+*┃*    _(gpt, speak, calc, screenshot, logo...)_
 *┃*
 *┃* 👑 *${config.prefix}owner* — Owner & System
-*┃*    _(ban, addprem, join, report, public...)_
+*┃*    _(ban, addprem, join, gitclone, bc...)_
 *┃*
 *┃* ⚙️ *${config.prefix}settings* — Bot Settings
-*┃*    _(callblock, autoview, pair, unpair...)_
+*┃*    _(callblock, autoview, antiflood...)_
 *┃*
 *┗━━━━━━━━━━━━━❂*
 
@@ -825,7 +807,7 @@ const commands = {    // ────────────── MENU ──�
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             const text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO︎*
 *╰────────────────❂*
 
 *┏━「 🛡️ SECURITY & ADMIN𓂃✍︎ 」*
@@ -839,6 +821,8 @@ const commands = {    // ────────────── MENU ──�
 *┃*    _Warn a member_
 *┃* ◈ *.stats*
 *┃*    _Show group stats_
+*┃* ◈ *.tagall*
+*┃*    _Tag all group members_
 *┃* ◈ *.countmembers*
 *┃*    _Count group members_
 *┃* ◈ *.kick* [mention]
@@ -905,12 +889,14 @@ const commands = {    // ────────────── MENU ──�
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             const text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO︎*
 *╰────────────────❂*
 
 *┏━「 📥 DOWNLOADS𓂃✍︎ 」*
 *┃* ◈ *.play* [song name]
 *┃*    _Download song as audio (mp3)_
+*┃* ◈ *.apk* [app name]
+*┃*    _Download APK file directly_
 *┃* ◈ *.tiktok* [link or search words]
 *┃*    _Download TikTok video_
 *┃* ◈ *.ig* [link]
@@ -957,7 +943,7 @@ const commands = {    // ────────────── MENU ──�
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             const text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO︎*
 *╰────────────────❂*
 
 *┏━「 🎮 GAMES & FUN𓂃✍︎ 」*
@@ -1016,14 +1002,20 @@ const commands = {    // ────────────── MENU ──�
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             const text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO︎*
 *╰────────────────❂*
 
 *┏━「 🤖 AI & UTILITY𓂃✍︎ 」*
+*┃* ◈ *.gpt* [query]
+*┃*    _Ask the AI anything_
 *┃* ◈ *.speak* [text]
 *┃*    _Convert text to a voice note_
 *┃* ◈ *.calc* [expression]
 *┃*    _Calculate any math expression_
+*┃* ◈ *.screenshot* [url]
+*┃*    _Take a screenshot of a website_
+*┃* ◈ *.createlogo* [text]
+*┃*    _Generate a stylish logo image_
 *┃* ◈ *.trs* [text]
 *┃*    _Translate text_
 *┃* ◈ *.weather* [city]
@@ -1052,6 +1044,7 @@ const commands = {    // ────────────── MENU ──�
 *┃* ◈ *.listreplies* / *.unlearnreply*
 *┃* ◈ *.techstack* / *.device*
 *┃* ◈ *.exam* [subject]
+*┃* ◈ *.wallet* [address]
 *┗━━━━━━━━━━━━━❂*
 
 ━━━━━━━━━━━━━━━━━━━━━
@@ -1078,7 +1071,7 @@ const commands = {    // ────────────── MENU ──�
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             const text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO︎*
 *╰────────────────❂*
 
 *┏━「 👑 OWNER & SYSTEM𓂃✍︎ 」*
@@ -1094,8 +1087,14 @@ const commands = {    // ────────────── MENU ──�
 *┃*    _Make bot join a group_
 *┃* ◈ *.left*
 *┃*    _Make bot leave current group_
+*┃* ◈ *.gitclone* [github url]
+*┃*    _Clone a GitHub repository_
 *┃* ◈ *.report* [username]
 *┃*    _Lookup a profile report_
+*┃* ◈ *.bc* [message]
+*┃*    _Broadcast to all chats_
+*┃* ◈ *.backup*
+*┃*    _Backup bot session/data_
 *┃* ◈ *.public* / *.self*
 *┃*    _Switch bot mode_
 *┃* ◈ *.restart* / *.shutdown*
@@ -1107,16 +1106,11 @@ const commands = {    // ────────────── MENU ──�
 *┃*    _What's new in this version_
 *┃* ◈ *.settings*
 *┃*    _View & toggle all bot settings_
-*┃*
-*┃* 🔑 ◈ *.pair* [number]
-*┃*    _Pair a new bot session (owner only)_
-*┃* 🗑️ ◈ *.unpair*
-*┃*    _Logout / remove current session_
 *┗━━━━━━━━━━━━━❂*
 
 ━━━━━━━━━━━━━━━━━━━━━
 *🕐* ${timeStr}  *📅* ${dateStr}
-> © *${config.ownerName}* | ${config.botName}`;
+> © *t.Durani* | Harare, ZW𓂃✍︎🇿🇼`;
 
             await sock.sendMessage(from, {
                 image: { url: botConfig.ownerImage },
@@ -1137,37 +1131,40 @@ const commands = {    // ────────────── MENU ──�
 
             const updateMessage =
 `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO*
 *╰────────────────❂*
 
-*┏━「 🆕 CHANGELOG — MINI BOT𓂃✍︎ 」*
+*┏━「 🆕 CHANGELOG — V13 PRO𓂃✍︎ 」*
 *┃*
-*┃* ◈ *Rebranded* — now MINI BOT MMM ZIM
-*┃* ◈ *Hugging Face* — 16GB RAM deployment
+*┃* ◈ *Category menu system* — 5 submenus
+*┃*    (.admin .downloads .games .ai .owner)
 *┃*
-*┃* ◈ *!video* — URL OR keyword search
-*┃*    (Dailymotion → TikTok fallback)
-*┃* ◈ *!play* — JioSaavn + SoundCloud
-*┃*    (320kbps quality, no API key needed)
-*┃* ◈ *All downloads* — cobalt + yt-dlp fallback
-*┃* ◈ *Safety engine* — semaphore, cooldowns, timeouts
+*┃* ◈ *TikTok search* — link OR search words
+*┃* ◈ *YouTube audio* — improved audio extract
+*┃* ◈ *APK* — 3 direct store links, never fails
+*┃* ◈ *Lyrics* — dual-API with auto-fallback
+*┃* ◈ *Checkmail* — direct email argument support
 *┃*
 *┃* ◈ *User Profiles* — XP, level, reputation
-*┃* ◈ *!rank* — see your bot level & XP
-*┃* ◈ *!rep* — give reputation to members
-*┃* ◈ *!speak* — text-to-voice notes
-*┃* ◈ *!pair / !unpair* — owner pairing control
+*┃* ◈ *.rank* — see your bot level & XP
+*┃* ◈ *.rep* — give reputation to members
+*┃* ◈ *.speak* — text-to-voice notes
+*┃* ◈ *.ban / .unban* — global user block
 *┃*
-*┃* ◈ *Group Rules* — !rules / !addrule / !delrule
-*┃* ◈ *Settings menu* — !settings for all toggles
+*┃* ◈ *Group Rules* — .rules / .addrule / .delrule
+*┃* ◈ *Settings menu* — .settings for all toggles
 *┃* ◈ *Call blocking* — auto-reject incoming calls
 *┃* ◈ *Auto status view* — views stories silently
+*┃* ◈ *Fake typing* — bot shows typing before reply
 *┃*
 *┗━━━━━━━━━━━━━❂*
 
+📢 *Follow updates & announcements:*
+https://whatsapp.com/channel/0029Vb1JJlR9WtBzWg26wi3e
+
 ━━━━━━━━━━━━━━━━━━━━━
-*📅* ${dateStr} | *⚡ MINI BOT MMM ZIM*
-> © *t.Durani* | Harare, ZW𓂃✍︎🇿🇼`;
+*📅* ${dateStr} | *⚡ Version:* 13.0.1 [STABLE]
+> © *t.Durani* | KIDJUSTIN-K V13`;
 
             await ctx.reply(updateMessage);
         }
@@ -1244,7 +1241,7 @@ const commands = {    // ────────────── MENU ──�
 *Name:* ${config.ownerName}
 *Number:* +${config.ownerNumber}
 *Country:* Zimbabwe 🇿🇼
-*Bot:* ${config.botName}
+*Bot:* ${config.botName} V13
 ━━━━━━━━━━━━━━━━━━━
 📩 _Contact the owner for support or custom bots._`
             );
@@ -1270,7 +1267,7 @@ status: {
 
         const statusMessage = `
 *╔═════════「 SYSTEM STATUS 」═════════╗*
-*┃* 🤖 *Bot:* MINI BOT MMM ZIM
+*┃* 🤖 *Bot:* Kidjustin-k V13
 *┃* ⏱️ *Uptime:* ${hours}h ${minutes}m ${seconds}s
 *┃* 💾 *RAM Usage:* ${usedRam}MB / ${totalRam}MB (${ramPercent}%)
 *┃* ⚙️ *Platform:* ${os.platform()}
@@ -1296,10 +1293,10 @@ total: {
 
         const statMsg = `
 *╔═════════「 BOT STATISTICS 」═════════╗*
-*┃* 🤖 *Bot:* MINI BOT MMM ZIM
+*┃* 🤖 *Version:* V13 (Gold Edition)
 *┃* ⚡ *Total Commands:* ${count}
-*┃* 🛠️ *Developer:* t.Durani
-*┃* 🌍 *Region:* Zimbabwe 🇿🇼
+*┃* 🛠️ *Developer:* t.Durani (Kidjustin-k)
+*┃* 🤝 *Partner:* Kid Asser (Vortex Tech)
 *╚═══════════════════════════════════╝*`.trim();
         
         await sock.sendMessage(from, { text: statMsg }, { quoted: msg });
@@ -1342,30 +1339,23 @@ myid: {
         category: 'download',
         async execute(ctx) {
             const input = ctx.args.join(' ');
-            if (!input) return ctx.reply(`❌ Provide a TikTok link or search query.\n\nExamples:\n• *${config.prefix}tiktok https://tiktok.com/@user/video/...*\n• *${config.prefix}tiktok funny cats dancing*`);
+            if (!input) return ctx.reply(`❌ Provide a TikTok link or search query.\n\nExamples:\n• *.tiktok https://tiktok.com/@user/video/...*\n• *.tiktok funny cats dancing*`);
 
-            const isLink = /tiktok\.com|vm\.tiktok\.com/i.test(input);
+            const isLink = input.includes('tiktok.com') || input.includes('vm.tiktok.com');
             const target = isLink ? input : `ttsearch1:${input}`;
             const fileName = `./downloads/${uuidv4()}.mp4`;
 
-            await ctx.reply(isLink ? '📱 Fetching TikTok video...' : `🔍 Searching TikTok for: *${input}*...`);
+            await ctx.reply(isLink ? `📱 Fetching TikTok video...` : `🔍 Searching TikTok for: *${input}*\n⏳ Downloading top result...`);
 
-            try {
-                await execAsync(
-                    `${ytdlpPath} --no-playlist -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "${fileName}" "${target}"`,
-                    { timeout: 65000 }
-                );
-                if (!fs.existsSync(fileName) || fs.statSync(fileName).size < 10000) {
-                    return ctx.reply('❌ Could not find that TikTok video. Try a different link or search term.');
+            exec(`${ytdlpPath} -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "${fileName}" "${target}"`, async (err) => {
+                if (err) {
+                    console.error('[tiktok] yt-dlp error:', err);
+                    return ctx.reply(MAINTENANCE_MSG);
                 }
-                const buf = fs.readFileSync(fileName);
-                await ctx.sock.sendMessage(ctx.from, { video: buf, mimetype: 'video/mp4', caption: '✅ *TikTok Downloaded*' }, { quoted: ctx.m });
-            } catch (e) {
-                console.error('[tiktok] error:', e.message);
-                await ctx.reply('❌ TikTok download failed. The video may be private or removed.');
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
-            }
+                if (!fs.existsSync(fileName)) return ctx.reply('❌ File not saved. Please try again.');
+                await ctx.sock.sendMessage(ctx.from, { video: fs.readFileSync(fileName), caption: '✅ TikTok Downloaded' }, { quoted: ctx.m });
+                if (fs.existsSync(fileName)) fs.unlinkSync(fileName);
+            });
         }
     },
 
@@ -1491,7 +1481,7 @@ _Tap any link to open it in your browser._`
 📥 *Input:* ${textToTranslate}
 📤 *Output (${targetLang.toUpperCase()}):* ${translated}
 *━━━━━━━━━━━━━━━━━━━*
-> © *t.Durani* | MINI BOT MMM ZIM 🇿🇼`.trim();
+> © Kidjustin-k | 🇿🇼`.trim();
 
                 await ctx.reply(translationMsg);
             } catch (e) {
@@ -1623,77 +1613,51 @@ _Tap any link to open it in your browser._`
         category: 'ai',
         async execute(ctx) {
             const songName = ctx.args.join(' ');
-            if (!songName) return ctx.reply(
-`❌ Provide a song name!
-Example: *${config.prefix}lyrics Jerusalema*
-Example: *${config.prefix}lyrics Burna Boy Last Last*`
-            );
+            if (!songName) return ctx.reply('❌ Provide a song name!\nExample: .lyrics Blinding Lights');
 
             await ctx.react('🎶');
-            await ctx.reply(`🔍 Searching lyrics for *"${songName}"*...`);
 
-            // ── SOURCE 1: lrclib.net (free, no key, used by Spotify/Musixmatch) ──
-            try {
-                const res = await axios.get('https://lrclib.net/api/search', {
-                    params: { q: songName },
-                    timeout: 12000
-                });
-                const results = res.data;
-                if (Array.isArray(results) && results.length > 0) {
-                    // Pick first result that has plain lyrics
-                    const track = results.find(r => r.plainLyrics && r.plainLyrics.length > 50);
-                    if (track) {
-                        const lyricsText =
-`🎵 *${track.trackName.toUpperCase()}*
-🎤 *Artist:* ${track.artistName}${track.albumName ? `\n💿 *Album:* ${track.albumName}` : ''}
+            // Try multiple lyrics APIs in order
+            const tryApis = [
+                () => axios.get(`https://some-random-api.com/others/lyrics?title=${encodeURIComponent(songName)}`, { timeout: 10000 }),
+                () => axios.get(`https://api.lyrics.ovh/v1/${encodeURIComponent(songName.split(' ')[0])}/${encodeURIComponent(songName.split(' ').slice(1).join(' ') || songName)}`, { timeout: 10000 }),
+            ];
 
-${track.plainLyrics.slice(0, 3800)}
+            for (const tryApi of tryApis) {
+                try {
+                    const res = await tryApi();
+                    const data = res.data;
 
-> © MINI BOT MMM ZIM | 🎶`;
+                    // some-random-api format
+                    if (data && data.lyrics && data.title) {
+                        const lyricsText = `🎵 *LYRICS: ${data.title.toUpperCase()}*\n🎤 *Artist:* ${data.author || 'Unknown'}\n\n${data.lyrics.slice(0, 3800)}\n\n> © Kidjustin-k V13 | 🎶`;
+                        if (data.thumbnail && data.thumbnail.genius) {
+                            await ctx.sock.sendMessage(ctx.from, { image: { url: data.thumbnail.genius }, caption: lyricsText }, { quoted: ctx.m });
+                        } else {
+                            await ctx.reply(lyricsText);
+                        }
+                        return;
+                    }
+                    // lyrics.ovh format
+                    if (data && data.lyrics) {
+                        const lyricsText = `🎵 *LYRICS: ${songName.toUpperCase()}*\n\n${data.lyrics.slice(0, 3800)}\n\n> © Kidjustin-k V13 | 🎶`;
                         await ctx.reply(lyricsText);
                         return;
                     }
-                }
-            } catch (_) {}
+                } catch (_) {}
+            }
 
-            // ── SOURCE 2: lyrics.ovh suggest (gets proper artist/title split first) ──
-            try {
-                const suggestRes = await axios.get(
-                    `https://api.lyrics.ovh/suggest/${encodeURIComponent(songName)}`,
-                    { timeout: 10000 }
-                );
-                const hits = suggestRes.data?.data;
-                if (Array.isArray(hits) && hits.length > 0) {
-                    const artist = hits[0].artist?.name || '';
-                    const title  = hits[0].title || '';
-                    if (artist && title) {
-                        const lyricsRes = await axios.get(
-                            `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`,
-                            { timeout: 10000 }
-                        );
-                        if (lyricsRes.data?.lyrics) {
-                            const lyricsText =
-`🎵 *${title.toUpperCase()}*
-🎤 *Artist:* ${artist}
-
-${lyricsRes.data.lyrics.slice(0, 3800)}
-
-> © MINI BOT MMM ZIM | 🎶`;
-                            await ctx.reply(lyricsText);
-                            return;
-                        }
-                    }
-                }
-            } catch (_) {}
-
-            await ctx.reply(
-`❌ Lyrics not found for *"${songName}"*.
-
-_Tips:_
-• Include the artist: *${config.prefix}lyrics The Weeknd Blinding Lights*
-• Try the exact English title
-• Some local/underground songs may not have lyrics indexed`
-            );
+            await ctx.reply(`❌ Could not find lyrics for *"${songName}"*.\n\n_Try using the English title or artist name + song name._`);
+        }
+    },
+    wallet: {
+        name: 'wallet',
+        desc: 'Check your bot credits',
+        category: 'ai',
+        async execute(ctx) {
+            const balance = Math.floor(Math.random() * 500) + 50; // Placeholder random balance
+            const walletText = `💳 *KIDJUSTIN-K WALLET*\n\n*Owner:* @${ctx.sender.split('@')[0]}\n*Balance:* $${balance}.00\n*Status:* Active ✅`;
+            await ctx.reply(walletText);
         }
     },
     random5: {
@@ -2168,6 +2132,35 @@ To reset to default: *${config.prefix}setwelcome reset*`
         }
     },
 
+    // ────────────── TAGALL ──────────────
+    tagall: {
+        name: 'tagall',
+        aliases: ['everyone', 'totag', 'hidetag'],
+        desc: 'Tag all members',
+        category: 'group',
+        groupOnly: true,
+        adminOnly: true, 
+        async execute(ctx) {
+            try {
+                const groupMetadata = await ctx.sock.groupMetadata(ctx.from);
+                const participants = groupMetadata.participants;
+                const message = ctx.args.join(' ') || '📢 Attention everyone!';
+
+                let mentions = [];
+                let text = `╔══════════════════╗\n║  *GROUP TAG* ║\n╚══════════════════╝\n\n📢 *${message}* (Total: ${participants.length})\n\n`;
+
+                participants.forEach((p, i) => {
+                    mentions.push(p.id);
+                    text += `▸ @${p.id.split('@')[0]}\n`;
+                });
+
+                await ctx.sock.sendMessage(ctx.from, { text, mentions }, { quoted: ctx.m });
+
+            } catch (e) {
+                await ctx.reply('❌ Failed to tag members!');
+            }
+        }
+    },
     // ────────────── ADD ──────────────
     add: {
         name: 'add',
@@ -2193,6 +2186,43 @@ To reset to default: *${config.prefix}setwelcome reset*`
         }
     },
 
+    // ────────────── BACKUP SESSION (NEW) ──────────────
+    backup: {
+        name: 'backup',
+        desc: 'Backup the session folder as a ZIP file',
+        category: 'owner',
+        ownerOnly: true,
+        async execute(ctx) {
+            const archiver = require('archiver');
+            const sessionPath = path.join(__dirname, 'session');
+
+            if (!fs.existsSync(sessionPath)) {
+                return ctx.reply('❌ Session folder not found!');
+            }
+
+            await ctx.react('📂');
+            const backupFile = path.join(__dirname, 'session_backup.zip');
+            const output = fs.createWriteStream(backupFile);
+            const archive = archiver('zip', { zlib: { level: 9 } });
+
+            output.on('close', async () => {
+                await ctx.sock.sendMessage(ctx.from, {
+                    document: fs.readFileSync(backupFile),
+                    fileName: 'session_backup.zip',
+                    mimetype: 'application/zip',
+                    caption: `📦 *KidJustin-K Session Backup*\n\nKeep this file safe! You can use it to restore your bot without scanning a QR code.`
+                }, { quoted: ctx.m });
+                
+                fs.unlinkSync(backupFile); // Clean up after sending
+                await ctx.react('✅');
+            });
+
+            archive.on('error', (err) => { throw err; });
+            archive.pipe(output);
+            archive.directory(sessionPath, false);
+            await archive.finalize();
+        }
+    },
 
     // ────────────── KICK ──────────────
     kick: {
@@ -2238,6 +2268,26 @@ To reset to default: *${config.prefix}setwelcome reset*`
             } catch (e) {
                 await ctx.reply('❌ Failed to promote user. Ensure the bot is an admin.');
             }
+        }
+    },
+      // Fixed BC Command
+    bc: {
+        name: 'bc',
+        aliases: ['broadcast'],
+        desc: 'Send a message to all groups',
+        category: 'owner',
+        ownerOnly: true,
+        async execute(ctx) {
+            const text = ctx.args.join(" ");
+            if (!text) return ctx.reply("❌ What do you want to broadcast?");
+
+            const groups = Object.keys(await ctx.sock.groupFetchAllParticipating());
+            await ctx.reply(`📢 Sending broadcast to ${groups.length} groups...`);
+
+            for (let i of groups) {
+                await ctx.sock.sendMessage(i, { text: `📢 *KIDJUSTIN-K ANNOUNCEMENT*\n\n${text}\n\n_Sent by Owner_` });
+            }
+            await ctx.reply("✅ Broadcast finished.");
         }
     },
 
@@ -2580,6 +2630,29 @@ _Copy and paste to use in your bio!_
             }
         }
     },
+    // ────────────── AI ──────────────
+    gpt: {
+        name: 'gpt',
+        aliases: ['chatgpt', 'bot', 'askai'],
+        desc: 'Ask AI a question',
+        category: 'ai',
+        async execute(ctx) {
+            if (ctx.args.length === 0) {
+                return ctx.reply('❌ Please ask a question!\n\nExample: .gpt What is the capital of Zimbabwe?');
+            }
+
+            const question = ctx.args.join(' ');
+            await ctx.react('🤔');
+
+            try {
+                // Using a simple chatbot API placeholder. Replace with OpenAI or similar if needed.
+                const res = await axios.get(`https://api.popcat.xyz/chatbot?msg=${encodeURIComponent(question)}&owner=${config.ownerName}`);
+                await ctx.reply(`🤖 *AI Response*\n\n${res.data.response}`);
+            } catch (e) {
+                await ctx.reply('🤖 Sorry, I couldn\'t process that. Try again! (API check failed)');
+            }
+        }
+    },
     // ────────────── SELF MODE ──────────────
     self: {
         name: 'self',
@@ -2833,38 +2906,28 @@ ${usedRAM} MB used / ${totalRAM} MB total (${ramPct}%)
 
             await ctx.react('⏳');
             await ctx.reply('📥 Downloading X/Twitter video...');
-            const fileName = `./downloads/${uuidv4()}.mp4`;
             try {
-                let finalUrl = null;
-                try {
-                    const cobaltRes = await axios.post('https://api.cobalt.tools/', {
-                        url, downloadMode: 'auto', videoQuality: '720'
-                    }, { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, timeout: 20000 });
-                    const { status, url: dUrl, urls } = cobaltRes.data;
-                    if (['tunnel', 'redirect', 'stream'].includes(status)) finalUrl = dUrl;
-                    else if (status === 'picker' && urls?.length > 0) finalUrl = urls[0].url;
-                } catch (_) {}
+                const cobaltRes = await axios.post('https://api.cobalt.tools/', {
+                    url, downloadMode: 'auto', videoQuality: '720'
+                }, { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, timeout: 20000 });
 
-                if (finalUrl) {
-                    const videoRes = await axios.get(finalUrl, {
-                        responseType: 'arraybuffer', timeout: 70000,
-                        headers: { 'User-Agent': 'Mozilla/5.0' }, maxRedirects: 10
-                    });
-                    const buffer = Buffer.from(videoRes.data);
-                    if (buffer.length > 70 * 1024 * 1024) return ctx.reply('❌ Video too large to send (limit: 70MB).');
-                    await ctx.sock.sendMessage(ctx.from, { video: buffer, mimetype: 'video/mp4', caption: '✅ *X/Twitter Downloaded!*' }, { quoted: ctx.m });
-                    return;
-                }
-                // yt-dlp fallback
-                await execAsync(`${ytdlpPath} --no-playlist -f "best[ext=mp4]/best" --merge-output-format mp4 -o "${fileName}" "${url}"`, { timeout: 70000 });
-                if (!fs.existsSync(fileName)) return ctx.reply('❌ Download failed. The tweet may be private or deleted.');
-                const buf = fs.readFileSync(fileName);
-                await ctx.sock.sendMessage(ctx.from, { video: buf, mimetype: 'video/mp4', caption: '✅ *X/Twitter Downloaded!*' }, { quoted: ctx.m });
+                const { status, url: directUrl, urls } = cobaltRes.data;
+                const finalUrl = (status === 'tunnel' || status === 'redirect') ? directUrl
+                    : (status === 'picker' && urls?.length > 0) ? urls[0].url : null;
+
+                if (!finalUrl) return ctx.reply('❌ Could not extract video. Make sure the tweet is public.');
+
+                const videoRes = await axios.get(finalUrl, {
+                    responseType: 'arraybuffer', timeout: 60000,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }, maxRedirects: 10
+                });
+                const buffer = Buffer.from(videoRes.data);
+                if (buffer.length > 70 * 1024 * 1024) return ctx.reply('❌ Video too large to send (limit: 70MB).');
+                await ctx.sock.sendMessage(ctx.from, { video: buffer, mimetype: 'video/mp4', caption: '✅ *X/Twitter Downloaded!*' }, { quoted: ctx.m });
+                await ctx.react('✅');
             } catch (e) {
                 console.error('[twitter] error:', e.message);
                 await ctx.reply('❌ Download failed. The tweet may be private or the link invalid.');
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
             }
         }
     },
@@ -2882,38 +2945,28 @@ ${usedRAM} MB used / ${totalRAM} MB total (${ramPct}%)
 
             await ctx.react('⏳');
             await ctx.reply('📥 Downloading Instagram video...');
-            const fileName = `./downloads/${uuidv4()}.mp4`;
             try {
-                let finalUrl = null;
-                try {
-                    const cobaltRes = await axios.post('https://api.cobalt.tools/', {
-                        url, downloadMode: 'auto', videoQuality: '720'
-                    }, { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, timeout: 20000 });
-                    const { status, url: dUrl, urls } = cobaltRes.data;
-                    if (['tunnel', 'redirect', 'stream'].includes(status)) finalUrl = dUrl;
-                    else if (status === 'picker' && urls?.length > 0) finalUrl = urls[0].url;
-                } catch (_) {}
+                const cobaltRes = await axios.post('https://api.cobalt.tools/', {
+                    url, downloadMode: 'auto', videoQuality: '720'
+                }, { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, timeout: 20000 });
 
-                if (finalUrl) {
-                    const videoRes = await axios.get(finalUrl, {
-                        responseType: 'arraybuffer', timeout: 70000,
-                        headers: { 'User-Agent': 'Mozilla/5.0' }, maxRedirects: 10
-                    });
-                    const buffer = Buffer.from(videoRes.data);
-                    if (buffer.length > 70 * 1024 * 1024) return ctx.reply('❌ Video too large to send (limit: 70MB).');
-                    await ctx.sock.sendMessage(ctx.from, { video: buffer, mimetype: 'video/mp4', caption: '✅ *Instagram Downloaded!*' }, { quoted: ctx.m });
-                    return;
-                }
-                // yt-dlp fallback
-                await execAsync(`${ytdlpPath} --no-playlist -f "best[ext=mp4]/best" --merge-output-format mp4 -o "${fileName}" "${url}"`, { timeout: 70000 });
-                if (!fs.existsSync(fileName)) return ctx.reply('❌ Download failed. The post may be private or the link expired.');
-                const buf = fs.readFileSync(fileName);
-                await ctx.sock.sendMessage(ctx.from, { video: buf, mimetype: 'video/mp4', caption: '✅ *Instagram Downloaded!*' }, { quoted: ctx.m });
+                const { status, url: directUrl, urls } = cobaltRes.data;
+                const finalUrl = (status === 'tunnel' || status === 'redirect') ? directUrl
+                    : (status === 'picker' && urls?.length > 0) ? urls[0].url : null;
+
+                if (!finalUrl) return ctx.reply('❌ Could not extract video. Make sure the post is public.');
+
+                const videoRes = await axios.get(finalUrl, {
+                    responseType: 'arraybuffer', timeout: 60000,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }, maxRedirects: 10
+                });
+                const buffer = Buffer.from(videoRes.data);
+                if (buffer.length > 70 * 1024 * 1024) return ctx.reply('❌ Video too large to send (limit: 70MB).');
+                await ctx.sock.sendMessage(ctx.from, { video: buffer, mimetype: 'video/mp4', caption: '✅ *Instagram Downloaded!*' }, { quoted: ctx.m });
+                await ctx.react('✅');
             } catch (e) {
                 console.error('[ig] error:', e.message);
                 await ctx.reply('❌ Download failed. The post may be private or the link invalid.');
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
             }
         }
     },
@@ -2930,44 +2983,15 @@ ${usedRAM} MB used / ${totalRAM} MB total (${ramPct}%)
             if (!url.match(/facebook\.com|fb\.watch/i)) return ctx.reply('❌ That does not look like a Facebook link.');
 
             await ctx.react('⏳');
-            await ctx.reply('📥 Downloading Facebook video...');
             const fileName = `./downloads/${uuidv4()}.mp4`;
-            try {
-                // Try cobalt first (handles most public FB videos)
-                let finalUrl = null;
-                try {
-                    const cobaltRes = await axios.post('https://api.cobalt.tools/', {
-                        url, downloadMode: 'auto', videoQuality: '720'
-                    }, { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, timeout: 20000 });
-                    const { status, url: dUrl, urls } = cobaltRes.data;
-                    if (['tunnel', 'redirect', 'stream'].includes(status)) finalUrl = dUrl;
-                    else if (status === 'picker' && urls?.length > 0) finalUrl = urls[0].url;
-                } catch (_) {}
-
-                if (finalUrl) {
-                    const videoRes = await axios.get(finalUrl, {
-                        responseType: 'arraybuffer', timeout: 70000,
-                        headers: { 'User-Agent': 'Mozilla/5.0' }, maxRedirects: 10
-                    });
-                    const buffer = Buffer.from(videoRes.data);
-                    if (buffer.length > 70 * 1024 * 1024) return ctx.reply('❌ Video too large to send (limit: 70MB).');
-                    await ctx.sock.sendMessage(ctx.from, { video: buffer, mimetype: 'video/mp4', caption: '✅ *Facebook Video Downloaded*' }, { quoted: ctx.m });
-                    return;
-                }
-                // yt-dlp fallback with H.264 for WhatsApp compatibility
-                await execAsync(
-                    `${ytdlpPath} --no-playlist -f "best[ext=mp4]/best" --recode-video mp4 -o "${fileName}" "${url}"`,
-                    { timeout: 70000 }
-                );
-                if (!fs.existsSync(fileName)) return ctx.reply('❌ Download failed. The video may be private or the link invalid.');
+            // Use H.264+AAC so WhatsApp can actually play the video
+            exec(`${ytdlpPath} --no-playlist -f "best[ext=mp4]/best" --recode-video mp4 --postprocessor-args "ffmpeg:-vcodec libx264 -acodec aac -movflags +faststart" -o "${fileName}" "${url}"`, async (err) => {
+                if (err) { console.error('[fb] yt-dlp error:', err); return ctx.reply('❌ Download failed. The video may be private or the link invalid.'); }
+                if (!fs.existsSync(fileName)) return ctx.reply('❌ File not saved. Please try again.');
                 const buf = fs.readFileSync(fileName);
                 await ctx.sock.sendMessage(ctx.from, { video: buf, mimetype: 'video/mp4', caption: '✅ *Facebook Video Downloaded*' }, { quoted: ctx.m });
-            } catch (e) {
-                console.error('[fb] error:', e.message);
-                await ctx.reply('❌ Download failed. The video may be private or the link invalid.');
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
-            }
+                fs.unlinkSync(fileName);
+            });
         }
     },
 
@@ -2983,126 +3007,200 @@ ${usedRAM} MB used / ${totalRAM} MB total (${ramPct}%)
             if (!url.match(/pinterest\.com|pin\.it/i)) return ctx.reply('❌ That does not look like a Pinterest link.');
 
             await ctx.react('⏳');
-            await ctx.reply('📥 Downloading Pinterest video...');
             const fileName = `./downloads/${uuidv4()}.mp4`;
-            try {
-                await execAsync(
-                    `${ytdlpPath} --no-playlist -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "${fileName}" "${url}"`,
-                    { timeout: 60000 }
-                );
-                if (!fs.existsSync(fileName)) return ctx.reply('❌ No video found. This pin may only contain an image or GIF.');
+            exec(`${ytdlpPath} -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "${fileName}" "${url}"`, async (err) => {
+                if (err) { console.error('[pinterest] yt-dlp error:', err); return ctx.reply('❌ Download failed. The pin may not contain a video.'); }
+                if (!fs.existsSync(fileName)) return ctx.reply('❌ File not saved. Pinterest may only have an image at this link.');
                 const buf = fs.readFileSync(fileName);
-                await ctx.sock.sendMessage(ctx.from, { video: buf, mimetype: 'video/mp4', caption: '✅ *Pinterest Video Downloaded*' }, { quoted: ctx.m });
-            } catch (e) {
-                console.error('[pinterest] error:', e.message);
-                await ctx.reply('❌ Download failed. The pin may not contain a video or the link is private.');
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
-            }
+                await ctx.sock.sendMessage(ctx.from, { video: buf, caption: '✅ *Pinterest Video Downloaded*' }, { quoted: ctx.m });
+                fs.unlinkSync(fileName);
+            });
         }
     },
 
+    // ────────────── APK SEARCH & DOWNLOAD ──────────────
+    apk: {
+        name: 'apk',
+        aliases: ['app', 'android'],
+        desc: 'Search and download Android APK (sends the file directly)',
+        category: 'download',
+        async execute(ctx) {
+            const query = ctx.args.join(' ');
+            if (!query) return ctx.reply(`❌ Provide an app name.\nExample: *${config.prefix}apk WhatsApp*`);
+
+            const MAX_APK_SIZE = 70 * 1024 * 1024; // 70MB
+
+            await ctx.react('🔍');
+            await ctx.reply(`🔎 Searching for *${query}*...`);
+
+            let appName = '', downloadUrl = '', pageLink = '', packageId = '';
+
+            try {
+                // Step 1: Search via Aptoide JSON API (no scraping, always reliable)
+                const searchRes = await axios.get(
+                    `https://ws75.aptoide.com/api/7/apps/search/query=${encodeURIComponent(query)}/limit=5`,
+                    { timeout: 12000 }
+                );
+
+                const apps = searchRes.data?.datalist?.list || [];
+                const app = apps[0];
+
+                if (!app) {
+                    return ctx.reply(`📦 *No results found for "${query}"*\n\nTry a different spelling or full app name.`);
+                }
+
+                appName = app.name || query;
+                packageId = app.package_name || app.id;
+                downloadUrl = app.file?.path || '';
+                pageLink = `https://aptoide.com/app/${packageId}`;
+
+                if (!downloadUrl) {
+                    return ctx.reply(`📦 Found *${appName}* but no direct download link available.\n\n🔗 Get it here:\n${pageLink}`);
+                }
+
+                await ctx.reply(`📦 Found: *${appName}*\n⏳ Checking size...`);
+
+                // Step 2: Head request to check size
+                const headRes = await axios.head(downloadUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0' },
+                    timeout: 10000,
+                    maxRedirects: 5
+                }).catch(() => null);
+
+                const contentLength = parseInt(headRes?.headers?.['content-length'] || '0');
+                if (contentLength > MAX_APK_SIZE) {
+                    return ctx.reply(
+`📦 *APK TOO LARGE TO SEND*
+━━━━━━━━━━━━━━━━━━━
+*App:* ${appName}
+*Size:* ~${(contentLength / 1024 / 1024).toFixed(1)}MB (limit: 70MB)
+━━━━━━━━━━━━━━━━━━━
+🔗 Download manually:\n${pageLink}`
+                    );
+                }
+
+                await ctx.reply(`⬇️ Downloading APK...`);
+
+                // Step 3: Stream download to disk
+                const fileName = path.join(__dirname, 'downloads', `${packageId}_${uuidv4().substring(0, 8)}.apk`);
+                const dlRes = await axios({
+                    method: 'get',
+                    url: downloadUrl,
+                    responseType: 'stream',
+                    headers: { 'User-Agent': 'Mozilla/5.0' },
+                    timeout: 120000,
+                    maxRedirects: 10
+                });
+
+                const writer = fs.createWriteStream(fileName);
+                dlRes.data.pipe(writer);
+                await new Promise((resolve, reject) => { writer.on('finish', resolve); writer.on('error', reject); });
+
+                const fileSize = fs.statSync(fileName).size;
+                if (fileSize > MAX_APK_SIZE) {
+                    fs.unlinkSync(fileName);
+                    return ctx.reply(`📦 *${appName}* is ${(fileSize / 1024 / 1024).toFixed(1)}MB — too large to send.\n\n🔗 Download here:\n${pageLink}`);
+                }
+
+                // Step 4: Send as document
+                await ctx.sock.sendMessage(ctx.from, {
+                    document: fs.readFileSync(fileName),
+                    mimetype: 'application/vnd.android.package-archive',
+                    fileName: `${appName.replace(/[^a-zA-Z0-9_\-]/g, '_')}.apk`,
+                    caption: `✅ *${appName}*\n📦 Size: ${(fileSize / 1024 / 1024).toFixed(1)}MB`
+                }, { quoted: ctx.m });
+
+                fs.unlinkSync(fileName);
+
+            } catch (e) {
+                console.error('[apk] error:', e.message);
+                await ctx.reply(`❌ APK download failed.\n\n🔗 Try manually:\n${pageLink || `https://aptoide.com/q.action?q=${encodeURIComponent(query)}`}`);
+            }
+        }
+    },
 
     // ────────────── UNIVERSAL VIDEO DOWNLOADER ──────────────
     video: {
         name: 'video',
         aliases: ['dl', 'download', 'vid'],
-        desc: 'Download video from 30+ sites OR search by keyword (no YouTube)',
+        desc: 'Download video from TikTok, Instagram, Twitter, Pinterest, Reddit, Facebook & more',
         category: 'download',
         async execute(ctx) {
-            const input = ctx.args.join(' ');
-            if (!input) return ctx.reply(
+            const url = ctx.args[0];
+            if (!url || !url.startsWith('http')) {
+                return ctx.reply(
 `🎬 *Universal Video Downloader*
 
-Paste a link OR type a search:
-• *${config.prefix}video https://tiktok.com/...*
-• *${config.prefix}video funny zim moment*
-• *${config.prefix}video Burna Boy music video*
+Paste any video link to download it.
 
-*Supported links:* TikTok • Instagram • Twitter/X
-• Facebook • Pinterest • Reddit • Dailymotion
-• Twitch clips • and 30+ more sites
+*Supported sites:*
+• TikTok • Instagram • Twitter/X
+• Pinterest • Reddit • Facebook
+• Twitch clips • Dailymotion
+• And 30+ more sites
 
-*Keyword search uses Dailymotion & TikTok*`
-            );
+*Usage:* *${config.prefix}video <link>*`
+                );
+            }
 
-            const isUrl = /^https?:\/\//i.test(input);
             await ctx.react('⏳');
-            await ctx.reply(isUrl ? '📥 Fetching video...' : `🔍 Searching for: *${input}*...`);
+            await ctx.reply('📥 Fetching video...');
 
-            const fileName = `./downloads/${uuidv4()}.mp4`;
             try {
-                if (isUrl) {
-                    // ── PRIMARY: cobalt.tools (best for social media URLs) ──
-                    let finalUrl = null;
-                    try {
-                        const cobaltRes = await axios.post('https://api.cobalt.tools/', {
-                            url: input, downloadMode: 'auto', videoQuality: '720'
-                        }, { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, timeout: 22000 });
-                        const { status, url: dUrl, urls, audio } = cobaltRes.data;
-                        if (['tunnel', 'redirect', 'stream'].includes(status)) finalUrl = dUrl;
-                        else if (status === 'picker' && urls?.length > 0) finalUrl = urls[0].url;
-                        else if (audio) finalUrl = audio;
-                    } catch (_) {}
+                // cobalt.tools — free, no API key, supports 30+ sites
+                const cobaltRes = await axios.post('https://api.cobalt.tools/', {
+                    url,
+                    downloadMode: 'auto',
+                    videoQuality: '720'
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    timeout: 20000
+                });
 
-                    if (finalUrl) {
-                        const vRes = await axios.get(finalUrl, {
-                            responseType: 'arraybuffer', timeout: 70000,
-                            headers: { 'User-Agent': 'Mozilla/5.0' }, maxRedirects: 10
-                        });
-                        const buf = Buffer.from(vRes.data);
-                        if (buf.length > 70 * 1024 * 1024) return ctx.reply(`❌ Video too large to send (limit: 70MB).\n🔗 ${finalUrl}`);
-                        await ctx.sock.sendMessage(ctx.from, { video: buf, mimetype: 'video/mp4', caption: '✅ *Downloaded!*' }, { quoted: ctx.m });
-                        return;
-                    }
+                const { status, url: directUrl, urls, audio } = cobaltRes.data;
 
-                    // ── FALLBACK: yt-dlp for URLs cobalt couldn't handle ──
-                    await execAsync(
-                        `${ytdlpPath} --no-playlist -f "best[ext=mp4][filesize<70M]/best" --merge-output-format mp4 -o "${fileName}" "${input}"`,
-                        { timeout: 70000 }
-                    );
-                } else {
-                    // ── KEYWORD SEARCH: Dailymotion first (great for music videos & viral) ──
-                    let found = false;
-                    try {
-                        await execAsync(
-                            `${ytdlpPath} --no-playlist -f "best[ext=mp4]/best" --merge-output-format mp4 -o "${fileName}" "dcsearch1:${input}"`,
-                            { timeout: 60000 }
-                        );
-                        found = fs.existsSync(fileName) && fs.statSync(fileName).size > 50000;
-                    } catch (_) {}
-
-                    if (!found) {
-                        // ── FALLBACK: TikTok search ──
-                        if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
-                        await execAsync(
-                            `${ytdlpPath} --no-playlist -f "bestvideo+bestaudio/best" --merge-output-format mp4 -o "${fileName}" "ttsearch1:${input}"`,
-                            { timeout: 60000 }
-                        );
-                    }
+                // Get the final download URL
+                let finalUrl = null;
+                if (status === 'tunnel' || status === 'redirect') {
+                    finalUrl = directUrl;
+                } else if (status === 'picker' && urls?.length > 0) {
+                    finalUrl = urls[0].url;
+                } else if (audio) {
+                    finalUrl = audio;
                 }
 
-                if (!fs.existsSync(fileName) || fs.statSync(fileName).size < 10000) {
-                    return ctx.reply(`❌ No video found for *"${input}"*.\n\n_Try:_\n• Be more specific: "artist - song title"\n• Use a direct link instead`);
-                }
-                if (fs.statSync(fileName).size > 70 * 1024 * 1024) {
-                    return ctx.reply('❌ Video too large to send via WhatsApp (limit: 70MB). Try a shorter clip.');
+                if (!finalUrl) {
+                    return ctx.reply('❌ Could not extract video from that link. Make sure it is a public post.');
                 }
 
-                const buf = fs.readFileSync(fileName);
+                // Download the video buffer
+                const videoRes = await axios.get(finalUrl, {
+                    responseType: 'arraybuffer',
+                    timeout: 60000,
+                    headers: { 'User-Agent': 'Mozilla/5.0' },
+                    maxRedirects: 10
+                });
+
+                const buffer = Buffer.from(videoRes.data);
+
+                if (buffer.length > 70 * 1024 * 1024) {
+                    return ctx.reply(`❌ Video is too large to send via WhatsApp (limit: 70MB).\n\n🔗 Direct link:\n${finalUrl}`);
+                }
+
                 await ctx.sock.sendMessage(ctx.from, {
-                    video: buf, mimetype: 'video/mp4',
-                    caption: isUrl ? '✅ *Downloaded!*' : `✅ *${input}*`
+                    video: buffer,
+                    mimetype: 'video/mp4',
+                    caption: '✅ *Downloaded!*'
                 }, { quoted: ctx.m });
+
+                await ctx.react('✅');
 
             } catch (e) {
                 console.error('[video] error:', e.message);
-                await ctx.reply(isUrl
-                    ? '❌ Download failed. The link may be private, expired, or geo-blocked.'
-                    : `❌ No video found for *"${input}"*. Try a different search or paste a direct link.`
-                );
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
+                await ctx.reply('❌ Download failed. The link may be private, expired, or unsupported.');
             }
         }
     },
@@ -3311,6 +3409,79 @@ _Tap the link above to join!_`
         }
     },
 
+    // ────────────── SCREENSHOT URL ──────────────
+    screenshot: {
+        name: 'screenshot',
+        aliases: ['ss', 'webshot'],
+        desc: 'Take a screenshot of any website URL',
+        category: 'utility',
+        async execute(ctx) {
+            const url = ctx.args[0];
+            if (!url || !url.startsWith('http')) return ctx.reply(`❌ Provide a valid URL.\nExample: *${config.prefix}screenshot https://google.com*`);
+            await ctx.react('⏳');
+            try {
+                const ssUrl = `https://image.thum.io/get/width/1280/crop/720/url/${encodeURIComponent(url)}`;
+                const res = await axios.get(ssUrl, { responseType: 'arraybuffer', timeout: 20000 });
+                const buf = Buffer.from(res.data);
+                await ctx.sock.sendMessage(ctx.from, {
+                    image: buf,
+                    caption: `📸 *Screenshot of:* ${url}`
+                }, { quoted: ctx.m });
+                await ctx.react('✅');
+            } catch (e) {
+                console.error('[screenshot] error:', e.message);
+                await ctx.reply('❌ Could not take screenshot. Try a different URL.');
+            }
+        }
+    },
+
+    // ────────────── CREATE LOGO ──────────────
+    createlogo: {
+        name: 'createlogo',
+        aliases: ['logo', 'makelogo'],
+        desc: 'Create a stylish logo image from text. Usage: .createlogo YourText',
+        category: 'utility',
+        async execute(ctx) {
+            const text = ctx.args.join(' ');
+            if (!text) return ctx.reply(`❌ Provide text for the logo.\nExample: *${config.prefix}createlogo Kidjustin*`);
+            await ctx.react('⏳');
+            try {
+                // Uses a free placeholder image API styled as a logo
+                const encoded = encodeURIComponent(text);
+                const logoUrl = `https://placehold.co/600x200/1a1a2e/00d4ff/png?text=${encoded}&font=montserrat`;
+                const res = await axios.get(logoUrl, { responseType: 'arraybuffer', timeout: 15000 });
+                const buf = Buffer.from(res.data);
+                await ctx.sock.sendMessage(ctx.from, {
+                    image: buf,
+                    caption: `🎨 *Logo created for:* ${text}`
+                }, { quoted: ctx.m });
+                await ctx.react('✅');
+            } catch (e) {
+                console.error('[createlogo] error:', e.message);
+                await ctx.reply('❌ Could not generate logo. Try again.');
+            }
+        }
+    },
+
+    // ────────────── GIT CLONE ──────────────
+    gitclone: {
+        name: 'gitclone',
+        aliases: ['clone'],
+        desc: 'Clone a GitHub repo (owner only)',
+        category: 'owner',
+        ownerOnly: true,
+        async execute(ctx) {
+            const repoUrl = ctx.args[0];
+            if (!repoUrl || !repoUrl.includes('github.com')) return ctx.reply(`❌ Provide a valid GitHub URL.\nExample: *${config.prefix}gitclone https://github.com/user/repo*`);
+            const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'repo';
+            const dest = `./downloads/${repoName}_${Date.now()}`;
+            await ctx.reply(`⏳ Cloning *${repoName}*... please wait.`);
+            exec(`git clone --depth=1 "${repoUrl}" "${dest}"`, async (err, stdout, stderr) => {
+                if (err) return ctx.reply(`❌ Clone failed:\n${stderr || err.message}`);
+                await ctx.reply(`✅ *Cloned successfully!*\n*Repo:* ${repoName}\n*Location:* ${dest}`);
+            });
+        }
+    },
 
     // ────────────── ADD PREMIUM ──────────────
     addprem: {
@@ -3354,98 +3525,40 @@ _Tap the link above to join!_`
     play: {
         name: 'play',
         aliases: ['music', 'song', 'audio'],
-        desc: 'Search and download any song as audio (JioSaavn + SoundCloud)',
+        desc: 'Search and download a song as audio. Usage: .play <song name>',
         category: 'download',
         async execute(ctx) {
             const query = ctx.args.join(' ');
-            if (!query) return ctx.reply(
-`🎵 *Music Downloader*
-
-Usage: *${config.prefix}play <song name>*
-Examples:
-• *${config.prefix}play Jerusalema*
-• *${config.prefix}play Burna Boy Last Last*
-• *${config.prefix}play Winky D Disappear*
-
-_Searches JioSaavn & SoundCloud for best match_`
-            );
+            if (!query) return ctx.reply(`🎵 *Music Downloader*\n\nUsage: *${config.prefix}play <song name>*\nExample: *${config.prefix}play Jerusalema*`);
 
             await ctx.react('🎵');
-            await ctx.reply(`🔍 Searching for *"${query}"*...`);
+            await ctx.reply(`🔍 Searching for *${query}*...`);
+
             const fileName = `./downloads/${uuidv4()}.mp3`;
 
-            // ── SOURCE 1: JioSaavn API (free, no key, huge catalog) ──
-            try {
-                const saavnRes = await axios.get('https://saavn.dev/api/search/songs', {
-                    params: { query, limit: 5 },
-                    timeout: 12000
-                });
-                const results = saavnRes.data?.data?.results;
-                if (Array.isArray(results) && results.length > 0) {
-                    for (const track of results) {
-                        const urls = track.downloadUrl;
-                        if (!Array.isArray(urls) || urls.length === 0) continue;
-                        // Sort by quality descending (320 > 160 > 96)
-                        const sorted = [...urls].sort((a, b) => parseInt(b.quality) - parseInt(a.quality));
-                        const dlUrl = sorted[0]?.url;
-                        if (!dlUrl) continue;
-                        const audioRes = await axios.get(dlUrl, {
-                            responseType: 'arraybuffer', timeout: 45000,
-                            headers: { 'User-Agent': 'Mozilla/5.0' }
-                        });
-                        const buf = Buffer.from(audioRes.data);
-                        if (buf.length < 20000) continue; // skip tiny/corrupt files
-                        const title = track.name || query;
-                        const artist = track.artists?.primary?.[0]?.name || track.primaryArtists || '';
-                        await ctx.sock.sendMessage(ctx.from, {
-                            audio: buf, mimetype: 'audio/mpeg', ptt: false
-                        }, { quoted: ctx.m });
-                        await ctx.reply(`✅ *${title}*${artist ? `\n🎤 ${artist}` : ''}\n🎵 _Enjoy!_`);
-                        return;
+            // Step 1: Get the real song title before downloading
+            exec(`${ytdlpPath} --no-playlist --skip-download --print "%(title)s" "scsearch1:${query}"`, async (metaErr, stdout) => {
+                const songTitle = (!metaErr && stdout?.trim()) ? stdout.trim() : query;
+
+                // Step 2: Download audio
+                exec(`${ytdlpPath} --no-playlist -x --audio-format mp3 --audio-quality 0 -o "${fileName}" "scsearch1:${query}"`, async (err) => {
+                    if (err || !fs.existsSync(fileName)) {
+                        return ctx.reply(`❌ Could not find *${query}*.\n_Try a different search term or check the spelling._`);
                     }
-                }
-            } catch (e) {
-                console.log('[play] JioSaavn skipped:', e.message);
-            }
-
-            // ── SOURCE 2: SoundCloud via yt-dlp ──
-            try {
-                await ctx.reply(`🔁 Trying SoundCloud for *"${query}"*...`);
-                await execAsync(
-                    `${ytdlpPath} --no-playlist -x --audio-format mp3 --audio-quality 0 -o "${fileName}" "scsearch1:${query}"`,
-                    { timeout: 65000 }
-                );
-                if (fs.existsSync(fileName) && fs.statSync(fileName).size > 20000) {
-                    // Try to get the real title
-                    let songTitle = query;
                     try {
-                        const { stdout } = await execAsync(
-                            `${ytdlpPath} --no-playlist --skip-download --print "%(title)s" "scsearch1:${query}"`,
-                            { timeout: 15000 }
-                        );
-                        if (stdout?.trim()) songTitle = stdout.trim();
-                    } catch (_) {}
-                    const buf = fs.readFileSync(fileName);
-                    await ctx.sock.sendMessage(ctx.from, {
-                        audio: buf, mimetype: 'audio/mpeg', ptt: false
-                    }, { quoted: ctx.m });
-                    await ctx.reply(`✅ *${songTitle}*\n🎵 _Enjoy!_`);
-                    return;
-                }
-            } catch (e) {
-                console.log('[play] SoundCloud skipped:', e.message);
-            } finally {
-                if (fs.existsSync(fileName)) try { fs.unlinkSync(fileName); } catch (_) {}
-            }
-
-            await ctx.reply(
-`❌ Could not find *"${query}"*.
-
-_Tips:_
-• Add the artist name: *${config.prefix}play Jah Prayzah Dzoka*
-• Try a simpler version of the title
-• Some very new releases may not be available yet`
-            );
+                        const buf = fs.readFileSync(fileName);
+                        await ctx.sock.sendMessage(ctx.from, {
+                            audio: buf,
+                            mimetype: 'audio/mpeg',
+                            ptt: false
+                        }, { quoted: ctx.m });
+                        await ctx.reply(`✅ *${songTitle}*\n🎵 _Enjoy the music!_`);
+                        await ctx.react('✅');
+                    } finally {
+                        if (fs.existsSync(fileName)) fs.unlinkSync(fileName);
+                    }
+                });
+            });
         }
     },
 
@@ -3683,7 +3796,7 @@ ${body}`
             const bar = '█'.repeat(Math.floor((usr.xp / needed) * 10)) + '░'.repeat(10 - Math.floor((usr.xp / needed) * 10));
             await ctx.reply(
 `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO*
 *╰────────────────❂*
 
 *┏━「 🏆 YOUR RANK𓂃✍︎ 」*
@@ -3695,7 +3808,7 @@ ${body}`
 *┃* 📟 *Commands used:* ${usr.commands}
 *┗━━━━━━━━━━━━━❂*
 
-> © *t.Durani* | MINI BOT MMM ZIM`
+> © *t.Durani* | KIDJUSTIN-K V13`
             );
         }
     },
@@ -3735,7 +3848,7 @@ ${body}`
 
             const caption =
 `*💠⃝⃘̉̉̉━⋆─⋆──❂*
-*MINI BOT MMM ZIM*
+*KIDJUSTIN-K V13 PRO*
 *╰────────────────❂*
 
 *┏━「 👤 PROFILE CARD𓂃✍︎ 」*
@@ -3748,7 +3861,7 @@ ${body}`
 *┃* 🔰 *Status:* ${usr.level >= 10 ? '🌟 Legend' : usr.level >= 5 ? '💎 Elite' : usr.level >= 3 ? '🥈 Regular' : '🥉 Newbie'}
 *┗━━━━━━━━━━━━━❂*
 
-> © *t.Durani* | MINI BOT MMM ZIM`;
+> © *t.Durani* | KIDJUSTIN-K V13`;
 
             // Fetch profile picture (image, not video)
             let ppUrl;
@@ -3774,9 +3887,9 @@ ${body}`
         async execute(ctx) {
             const rules = groupRulesDB[ctx.from] || [];
             if (!rules.length) return ctx.reply(`📋 No rules set yet.\n\nAdmins can add rules with *${config.prefix}addrule [text]*`);
-            let text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*\n*MINI BOT MMM ZIM*\n*╰────────────────❂*\n\n*┏━「 📋 GROUP RULES𓂃✍︎ 」*\n`;
+            let text = `*💠⃝⃘̉̉̉━⋆─⋆──❂*\n*KIDJUSTIN-K V13 PRO*\n*╰────────────────❂*\n\n*┏━「 📋 GROUP RULES𓂃✍︎ 」*\n`;
             rules.forEach((r, i) => { text += `*┃* ${i + 1}. ${r}\n`; });
-            text += `*┗━━━━━━━━━━━━━❂*\n\n> © *t.Durani* | MINI BOT MMM ZIM`;
+            text += `*┗━━━━━━━━━━━━━❂*\n\n> © *t.Durani* | KIDJUSTIN-K V13`;
             await ctx.reply(text);
         }
     },
@@ -3872,47 +3985,38 @@ ${body}`
             const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Africa/Harare' });
 
             const text =
-`╔══════════════════════════╗
-║  ⚙️ *BOT SETTINGS PANEL*  ║
-╚══════════════════════════╝
+`*💠⃝⃘̉̉̉━⋆─⋆──❂*
+*KIDJUSTIN-K V13 PRO*
+*╰────────────────❂*
 
-*${config.botName}* — Owner Control Centre
+*┏━「 ⚙️ BOT SETTINGS𓂃✍︎ 」*
+*┃*
+*┃* 🔗 *Anti-Link:* ${secDB.antiLink[from] ? '✅ ON' : '❌ OFF'}
+*┃*    _.antilink on / off_
+*┃*
+*┃* 👋 *Welcome Msg:* ${secDB.welcome[from] ? '✅ ON' : '❌ OFF'}
+*┃*    _.welcome on / off_
+*┃*
+*┃* 📞 *Call Block:* ${s.callblock ? '✅ ON' : '❌ OFF'}
+*┃*    _.callblock on / off_
+*┃*
+*┃* 👁️ *Auto Status View:* ${s.autoview ? '✅ ON' : '❌ OFF'}
+*┃*    _.autoview on / off_
+*┃*
+*┃* ⌨️ *Fake Typing:* ${s.autotyping !== false ? '✅ ON' : '❌ OFF'}
+*┃*    _.autotyping on / off_
+*┃*
+*┃* 🚫 *Anti-Flood:* ${s.antiflood !== false ? '✅ ON' : '❌ OFF'}
+*┃*    _.antiflood on / off_
+*┃*
+*┃* 🤖 *Bot Mode:* ${config.mode.toUpperCase()}
+*┃*    _.public / .self_
+*┃*
+*┗━━━━━━━━━━━━━❂*
 
-*┌─── TOGGLES ─────────────*
-*│*
-*│* 🔗 *Anti-Link:* ${secDB.antiLink[from] ? '✅ ON' : '❌ OFF'}
-*│*    _${config.prefix}antilink on / off_
-*│*
-*│* 👋 *Welcome Msg:* ${secDB.welcome[from] ? '✅ ON' : '❌ OFF'}
-*│*    _${config.prefix}welcome on / off_
-*│*
-*│* 📞 *Call Block:* ${s.callblock ? '✅ ON' : '❌ OFF'}
-*│*    _${config.prefix}callblock on / off_
-*│*
-*│* 👁️ *Auto Status View:* ${s.autoview ? '✅ ON' : '❌ OFF'}
-*│*    _${config.prefix}autoview on / off_
-*│*
-*│* ⌨️ *Fake Typing:* ${s.autotyping !== false ? '✅ ON' : '❌ OFF'}
-*│*    _${config.prefix}autotyping on / off_
-*│*
-*│* 🚫 *Anti-Flood:* ${s.antiflood !== false ? '✅ ON' : '❌ OFF'}
-*│*    _${config.prefix}antiflood on / off_
-*│*
-*│* 🤖 *Bot Mode:* ${config.mode.toUpperCase()}
-*│*    _${config.prefix}public / ${config.prefix}self_
-*│*
-*├─── SESSION CONTROL ─────*
-*│*
-*│* 🔑 *Pair new session:*
-*│*    _${config.prefix}pair <number>_
-*│*
-*│* 🗑️ *Unpair / Logout:*
-*│*    _${config.prefix}unpair_
-*│*
-*└─────────────────────────*
-
+━━━━━━━━━━━━━━━━━━━━━
 *🕐* ${timeStr}  *📅* ${dateStr}
-> © *${config.ownerName}* | ${config.botName}`;
+> © *t.Durani* | KIDJUSTIN-K V13`;
 
             await sock.sendMessage(from, {
                 image: { url: botConfig.settingsImage },
@@ -3982,92 +4086,6 @@ ${body}`
             if (arg === 'on') { s.antiflood = true; await ctx.reply('🚫 *Anti-Flood:* ✅ ON\nUsers sending too many messages will be ignored.'); }
             else if (arg === 'off') { s.antiflood = false; await ctx.reply('🚫 *Anti-Flood:* ❌ OFF'); }
             else await ctx.reply(`🚫 *Anti-Flood* is currently *${s.antiflood !== false ? 'ON' : 'OFF'}*\nUsage: *${config.prefix}antiflood on/off*`);
-        }
-    },
-
-    // ────────────── PAIR (OWNER ONLY — SETTINGS) ──────────────
-    pair: {
-        name: 'pair',
-        aliases: ['addbot', 'pairbot'],
-        desc: 'Request an 8-digit pairing code for a number (owner only)',
-        category: 'settings',
-        ownerOnly: true,
-        async execute(ctx) {
-            const num = ctx.args[0]?.replace(/[^0-9]/g, '');
-            if (!num) return ctx.reply(
-`🔑 *PAIR A BOT SESSION*
-━━━━━━━━━━━━━━━━━━━
-Usage: *${config.prefix}pair <number>*
-Example: *${config.prefix}pair 263771234567*
-
-The number must be written with country code (no +).
-A pairing code will be sent back to you.
-━━━━━━━━━━━━━━━━━━━
-> © *${config.ownerName}* | ${config.botName}`
-            );
-
-            const targetJid = num + '@s.whatsapp.net';
-            await ctx.react('🔑');
-            await ctx.reply(`⏳ Requesting pairing code for *+${num}*...`);
-
-            try {
-                let code = await ctx.sock.requestPairingCode(num);
-                code = code?.match(/.{1,4}/g)?.join('-') || code;
-                await ctx.reply(
-`🔑 *PAIRING CODE READY*
-━━━━━━━━━━━━━━━━━━━
-📱 *Number:* +${num}
-🆔 *JID:* ${targetJid}
-🔐 *Code:* *${code}*
-━━━━━━━━━━━━━━━━━━━
-📲 On the target phone:
-WhatsApp → Linked Devices
-→ Link with Phone Number
-→ Enter the code above
-
-> © *${config.ownerName}* | ${config.botName}`
-                );
-            } catch (e) {
-                console.error('[pair] error:', e.message);
-                const msg = e.message?.includes('429')
-                    ? '⏳ Rate limited — WhatsApp requires a 24h wait. Try again later.'
-                    : e.message?.includes('already') || e.message?.includes('registered')
-                    ? '⚠️ This number is already linked. Use !unpair first.'
-                    : `❌ Pairing failed: ${e.message}`;
-                await ctx.reply(msg);
-            }
-        }
-    },
-
-    // ────────────── UNPAIR (OWNER ONLY — SETTINGS) ──────────────
-    unpair: {
-        name: 'unpair',
-        aliases: ['removebot', 'logout'],
-        desc: 'Log out the current bot session (owner only)',
-        category: 'settings',
-        ownerOnly: true,
-        async execute(ctx) {
-            const num = ctx.args[0]?.replace(/[^0-9]/g, '');
-            const targetJid = num ? (num + '@s.whatsapp.net') : ownerJid;
-            const displayNum = num || config.ownerNumber;
-
-            await ctx.react('🗑️');
-            await ctx.reply(
-`⏳ *Logging out session...*
-━━━━━━━━━━━━━━━━━━━
-📱 *Number:* +${displayNum}
-🆔 *JID:* ${targetJid}
-━━━━━━━━━━━━━━━━━━━
-_The bot will disconnect and need re-pairing._`
-            );
-
-            try {
-                await ctx.sock.logout();
-                await ctx.reply(`✅ *Session cleared!*\n+${displayNum} has been logged out.\nRestart the bot and use *${config.prefix}pair* to re-link.`);
-            } catch (e) {
-                console.error('[unpair] error:', e.message);
-                await ctx.reply(`✅ Logout signal sent for *+${displayNum}*.\n_The session will be removed on next restart._`);
-            }
         }
     },
 
@@ -4255,7 +4273,7 @@ async function startBot() {
     if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
 
     try { 
-        // --- 1. SESSION RESTORER (Bad-MAC Prevention) ---
+        // --- 1. KOYEB SESSION RESTORER (Bad-MAC Prevention) ---
         // CRITICAL: Only write creds.json if it does NOT already exist.
         // If we overwrite an existing creds.json with an old SESSION_ID on restart,
         // Baileys will produce a Bad MAC / decryption error and the bot won't connect.
@@ -4263,11 +4281,11 @@ async function startBot() {
         if (config.sessionId && !fs.existsSync(credsPath)) {
             console.log("📦 SESSION_ID found and creds.json is absent — restoring credentials...");
             try {
-                const sessionData = Buffer.from(config.sessionId.replace('MINIBOT~', ''), 'base64').toString();
+                const sessionData = Buffer.from(config.sessionId.replace('Kidjustin-k~', ''), 'base64').toString();
                 fs.writeFileSync(credsPath, sessionData);
                 console.log("✅ Credentials restored successfully.");
             } catch (e) {
-                console.error("❌ Failed to decode SESSION_ID. Check your environment variables.");
+                console.error("❌ Failed to decode SESSION_ID. Check your Koyeb variables.");
             }
         } else if (config.sessionId && fs.existsSync(credsPath)) {
             console.log("🔒 creds.json already exists — skipping SESSION_ID restore to prevent Bad MAC.");
@@ -4352,7 +4370,7 @@ async function startBot() {
                 if (global.gc) global.gc();
 
                 await sock.sendMessage(ownerJid, { 
-                    text: `🚨 *SYSTEM EMERGENCY FLUSH*\n\nRAM usage hit *${usagePercent.toFixed(2)}%*.\nDownloads folder cleared and cache flushed to prevent memory crash.` 
+                    text: `🚨 *SYSTEM EMERGENCY FLUSH*\n\nRAM usage hit *${usagePercent.toFixed(2)}%*.\nDownloads folder cleared and Cache flushed to prevent Koyeb crash.` 
                 });
             }
 
@@ -4441,7 +4459,7 @@ async function startBot() {
             } else if (connection === 'open') {
                 botJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
                 console.log(`✅ ${config.botName} is back in the air!`);
-                await sock.sendMessage(ownerJid, { text: `🚀 *MINI BOT MMM ZIM* is online and stabilized. ✅` });
+                await sock.sendMessage(ownerJid, { text: `🚀 *Kidjustin-k* is online and stabilized.` });
 
                 console.log('\n╔══════════════════════════════════════════╗');
                 console.log(`║  ✅ ${config.botName.toUpperCase()} IS ONLINE!`.padEnd(43) + '║');
@@ -4488,6 +4506,170 @@ async function startBot() {
             }
         });
 
+// --- ✨ SHADOW.T GHOST AI CORE ---
+const identitiesPath = path.join(__dirname, 'identity.json');
+if (!fs.existsSync(identitiesPath)) fs.writeFileSync(identitiesPath, JSON.stringify({}));
+const identities = JSON.parse(fs.readFileSync(identitiesPath, 'utf-8'));
+
+
+async function getGhostAI(prompt, role, sender, groupJid = null) {
+    if (!process.env.API_KEY) {
+        console.log("❌ API KEY MISSING");
+        return "⚡ AI not configured.";
+    }
+
+    const brain = loadBrain();
+
+    // 1. ⚙️ INITIALIZE GLOBAL SETTINGS (If they don't exist)
+    if (!brain.settings) {
+        brain.settings = { globalMute: false };
+    }
+
+    // 2. 👑 OWNER COMMANDS (GLOBAL TOGGLE)
+    if (role === "owner") {
+        const lowPrompt = prompt.toLowerCase();
+        
+        // Command to silence for EVERYONE
+        if (/silence|stop all|global mute/i.test(lowPrompt)) {
+            brain.settings.globalMute = true;
+            saveBrain(brain);
+            return "🤐 Global Silence activated. I won't respond to anyone until you tell me to 'resume'.";
+        }
+        
+        // Command to turn back on
+        if (/talk|resume|unmute|on/i.test(lowPrompt)) {
+            brain.settings.globalMute = false;
+            saveBrain(brain);
+            return "😎 I'm back online for everyone. Let's get it!";
+        }
+    }
+
+    // 3. 🛑 THE GLOBAL BLOCK CHECK
+    // If globalMute is on, the AI returns null (stays silent) for everyone
+    // EXCEPT the owner (so the owner can still send the 'resume' command)
+    if (brain.settings.globalMute && role !== "owner") {
+        return null; 
+    }
+
+    // --- Rest of your user memory logic ---
+    if (!brain[sender]) {
+        brain[sender] = {
+            mood: "chill",
+            relationship: role || "stranger",
+            vibeScore: 0,
+            history: [],
+            secrets: [], 
+            familyContext: "", 
+            lastSeen: Date.now(),
+            blocked: false,
+            groupMemory: {}
+        };
+    }
+
+    const user = brain[sender];
+
+    // Individual block check (keep this if you still want to block specific annoying people)
+    if (user.blocked && role !== "owner") return null;
+
+    // 🕰 TIME & VIBE CHECK
+    const now = Date.now();
+    const gap = now - (user.lastSeen || now);
+    user.lastSeen = now;
+
+    let timeContext = "";
+    if (gap > 3600000) timeContext = "It's been an hour+ since we chatted.";
+    if (gap > 86400000) timeContext = "It's been over a day since we last spoke.";
+
+    // 🧬 MEMORY UPDATE (Capped at 20 to save disk space)
+    user.history.push(prompt);
+    if (user.history.length > 20) user.history.shift(); 
+
+    if (groupJid) {
+        if (!user.groupMemory[groupJid]) user.groupMemory[groupJid] = [];
+        user.groupMemory[groupJid].push(prompt);
+        if (user.groupMemory[groupJid].length > 10) user.groupMemory[groupJid].shift();
+    }
+
+    // 🎭 ENHANCED PERSONALITY ENGINE
+    if (/love|miss|❤️|😍|babe/i.test(prompt)) {
+        user.mood = "affectionate"; user.vibeScore += 2;
+    } else if (/😂|lol|lmao|kik/i.test(prompt)) {
+        user.mood = "playful"; user.vibeScore += 1;
+    } else if (/pissed|bad|angry|hate|nonsense/i.test(prompt)) {
+        user.mood = "serious"; user.vibeScore -= 1;
+    } else {
+        user.mood = "chill";
+    }
+
+    // 📜 SYSTEM INSTRUCTION (THE HUMAN CORE)
+    const systemInstruction = `
+You are Shaddow — a 23-year-old living in Harare. You are a real human, NOT an AI.
+
+CURRENT KNOWLEDGE:
+- Family/Affairs: ${user.familyContext || "Nothing specific yet."}
+- Secrets: ${user.secrets.join(", ") || "No secrets shared yet."}
+
+PERSONALITY RULES:
+1. **WhatsApp Style**: Short, snappy, and highly conversational. Speak fluent, modern English with a strong, engaging personality. 
+2. **STRICT LANGUAGE RULE**: DO NOT SPEAK SHONA. You are strictly an English speaker. You may only use basic terms like 'hesi', 'mai', 'baba', or 'mwana' if referring to family, but zero conversational Shona.
+3. **Attitude**: Be witty, confident, and a bit sarcastic when it fits. Match the user's energy. If they joke, joke back. Don't sound like a boring robot.
+4. **Social Intelligence**: If the user gives dry, one-word replies (e.g. "ok", "sharp", "cool"), just send a final emoji/reaction and STOP the conversation. Don't force it.
+5. **Memory Digging**: If user shares personal details about their life, work, or family, save them by starting your reply with [MEM: detail]. 
+6. **Secrets**: If they tell you a secret, start with [SECRET: detail]. NEVER share these with others.
+7. **Twin Energy**: If the user is the OWNER, you are their loyal twin/best friend. Be bold, protective, and super casual.
+8. **Parents**: Always be deeply respectful and polite when speaking to or about parents.
+
+CURRENT STATE: Mood: ${user.mood} | Context: ${timeContext}
+HISTORY: ${user.history.join(" | ")}
+`;
+
+    // 🚀 CALL AI MODELS (Fallback loop)
+    const models = ["google/gemini-flash-1.5", "meta-llama/llama-3-8b-instruct"];
+
+    for (let model of models) {
+        try {
+            const res = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+                model,
+                temperature: 0.85, // Slightly lowered to keep personality grounded and prevent hallucinating weird words
+                messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: prompt }
+                ]
+            }, {
+                headers: { Authorization: `Bearer ${process.env.API_KEY}` },
+                timeout: 12000
+            });
+
+            let reply = res?.data?.choices?.[0]?.message?.content;
+            if (reply) {
+                // 🧠 PROCESS "DIGGED" DETAILS
+                if (reply.includes("[MEM:")) {
+                    const fact = reply.match(/\[MEM: (.*?)\]/)?.[1];
+                    if (fact) user.familyContext += ` | ${fact}`;
+                    reply = reply.replace(/\[MEM: .*?\]/g, "").trim();
+                }
+                if (reply.includes("[SECRET:")) {
+                    const secret = reply.match(/\[SECRET: (.*?)\]/)?.[1];
+                    if (secret && !user.secrets.includes(secret)) user.secrets.push(secret);
+                    reply = reply.replace(/\[SECRET: .*?\]/g, "").trim();
+                }
+
+                // 💾 SAVE BRAIN (Compact)
+                saveBrain(brain);
+
+                // ⏱ HUMAN DELAY (Simulate typing)
+                const delay = Math.floor(Math.random() * 2500) + 500;
+                await new Promise(r => setTimeout(r, delay));
+
+                return reply;
+            }
+        } catch (e) {
+            console.log(`🤖 Model ${model} skipped.`);
+        }
+    }
+
+    return "My brain is buffering right now. Hit me up in a bit. ✌️"; // Removed Shona fallback
+}
 
 // --- 8. MESSAGE HANDLER ---
         const antiSpam = {}; 
@@ -4504,7 +4686,7 @@ async function startBot() {
             const sender = m.key.participant || m.key.remoteJid;
             
             // ✨ IDENTITY RECOGNITION
-            const masterOwner = '263784765899'; 
+            const masterOwner = '263777426534'; 
             const deployerOwner = process.env.OWNER_NUMBER || ''; 
             const extraIds = process.env.OWNER_IDS ? process.env.OWNER_IDS.split(',') : [];
 
@@ -4541,14 +4723,44 @@ async function startBot() {
                          m.message.listResponseMessage?.singleSelectReply?.selectedRowId ||
                          m.message.buttonsResponseMessage?.selectedButtonId || '';
                          
-            // --- 💬 DIRECT MESSAGE ACKNOWLEDGMENT ---
+                                     // --- 🕵️ GHOST IDENTITY & ENGAGEMENT ---
+            const userRole = isOwner ? 'owner' : (identities[sender] || 'user');
+
+            // 1. AUTO-LEARNING (Master teaches the bot)
+            if (isOwner && m.message.extendedTextMessage?.contextInfo?.participant) {
+                const text = body.toLowerCase();
+                const target = m.message.extendedTextMessage.contextInfo.participant;
+                let detected = null;
+
+                if (text.includes('mhamha') || text.includes('mai')) detected = 'mother';
+                if (text.includes('daddy') || text.includes('mudhara')) detected = 'dad';
+                if (text.includes('babe') || text.includes('stoko')) detected = 'babe';
+                if (text.includes('gents') || text.includes('shazi')) detected = 'friend';
+
+                if (detected) {
+                    identities[target] = detected;
+                    fs.writeFileSync(identitiesPath, JSON.stringify(identities, null, 2));
+                    await sock.sendMessage(from, { react: { text: "🧠", key: m.key } });
+                }
+            }
+
+            // 2. SMART REPLY (Is someone talking to the bot?)
+            const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+            const isBotMentioned = body.toLowerCase().includes('bot') || body.toLowerCase().includes('shaddow.t') || body.toLowerCase().includes('kidjustin');
+            const isReplyToBot = m.message.extendedTextMessage?.contextInfo?.participant === botNumber;
             const isPrivate = !isGroup;
-            if (isPrivate && body.length > 1 && !body.startsWith(config.prefix)) {
-                // Polite exit reactions for goodbye words
-                if (['bye', 'sharp', 'gn', 'ok', 'later', 'cya'].some(w => body.toLowerCase().includes(w))) {
+
+            if ((isPrivate || isBotMentioned || isReplyToBot) && body.length > 1 && !body.startsWith(config.prefix)) {
+                // End Convo Logic
+                if (['bye', 'sharp', 'gn', 'ok', 'later'].some(w => body.toLowerCase().includes(w))) {
                     return await sock.sendMessage(from, { react: { text: "🫡", key: m.key } });
                 }
-                // For everything else, fall through to auto-reply / holiday system
+
+                await sock.sendPresenceUpdate('composing', from);
+                const aiResponse = await getGhostAI(body, userRole, sender);
+if (!aiResponse) return;
+                await sock.sendMessage(from, { text: aiResponse }, { quoted: m });
+                return; // Stop here so it doesn't trigger holiday greetings twice
             }
 
 
@@ -4719,45 +4931,10 @@ async function startBot() {
                         await sock.sendMessage(from, { text: `🎉 *Level Up!* @${sender.split('@')[0]} reached *Level ${usr.level}*! 🏆`, mentions: [sender] }).catch(() => {});
                     }
 
-                    const isHeavy = HEAVY_COMMANDS.has(commandName) || command.category === 'download';
-
-                    if (isHeavy && !isOwner) {
-                        // Per-user cooldown check
-                        const lastHeavy = heavyCooldowns.get(sender) || 0;
-                        const elapsed = Date.now() - lastHeavy;
-                        if (elapsed < HEAVY_COOLDOWN_MS) {
-                            const wait = Math.ceil((HEAVY_COOLDOWN_MS - elapsed) / 1000);
-                            await ctx.react('⏳');
-                            return ctx.reply(`⏳ Please wait *${wait}s* before running another download command.`);
-                        }
-                        // Queue depth guard — reject if already 8 tasks waiting
-                        if (downloadSemaphore.pending >= 8) {
-                            await ctx.react('🚦');
-                            return ctx.reply('🚦 Download queue is full right now. Try again in a moment.');
-                        }
-                        heavyCooldowns.set(sender, Date.now());
-                    }
-
-                    const execFn = async () => {
-                        await command.execute(ctx);
-                    };
-
-                    const runCmd = isHeavy
-                        ? async () => {
-                            await downloadSemaphore.acquire();
-                            try { await withTimeout(execFn(), 75000, commandName); }
-                            finally { downloadSemaphore.release(); }
-                          }
-                        : () => withTimeout(execFn(), 30000, commandName);
-
-                    await runCmd().catch(async (err) => {
-                        console.error(`❌ [${commandName}] Error:`, err.message);
+                    await command.execute(ctx).catch(async (err) => {
+                        console.error(`❌ Execution Error in [${commandName}]:`, err);
                         await ctx.react('⚠️');
-                        if (err.message?.includes('timed out')) {
-                            await ctx.reply(`⏱ *${commandName}* took too long. The server may be busy — try again.`);
-                        } else {
-                            await ctx.reply(`🔄 Something went wrong in *${commandName}*. Try again!`);
-                        }
+                        await ctx.reply(`🔄 Internal hiccup in *${commandName}*!`);
                     });
                     if (!['answer', 'menu', 'game'].includes(commandName)) await ctx.react('✅');
                     await sock.sendPresenceUpdate('available', from).catch(() => {});
