@@ -33,10 +33,10 @@ COPY . .
 RUN mkdir -p /tmp/minima-session /tmp/minima-dl downloads
 
 # ── Expose port for Koyeb health check ───
-EXPOSE 8000
+EXPOSE 10000
 
 # ── Environment variable defaults ────────
-ENV PORT=8000
+ENV PORT=10000
 ENV BOT_NAME="MINIMA V13"
 ENV OWNER_NAME="t.Durani"
 ENV PREFIX="."
