@@ -1,11 +1,10 @@
 # ═══════════════════════════════════════════
-# MINIMA V13 — HuggingFace Spaces Dockerfile (FIXED)
+# MINIMA V13 — Koyeb Dockerfile
 # ═══════════════════════════════════════════
 
 FROM node:20-slim
 
 # ── System dependencies ──────────────────
-# Added 'git' to fix the npm spawn error
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
@@ -25,27 +24,23 @@ WORKDIR /app
 
 # ── Copy package files and install ───────
 COPY package.json ./
-# Updating npm ensures the latest installer logic is used
 RUN npm install -g npm@latest && npm install --omit=dev
 
 # ── Copy app source ───────────────────────
-# It is usually safer to copy everything unless your folder is very messy
 COPY . .
 
-# ── Create runtime directories in /tmp ───
-RUN mkdir -p /tmp/minima-session /tmp/minima-dl
+# ── Create runtime directories ───────────
+RUN mkdir -p /tmp/minima-session /tmp/minima-dl downloads
 
-# ── Expose port for HF health check ──────
-EXPOSE 7860
+# ── Expose port for Koyeb health check ───
+EXPOSE 8000
 
 # ── Environment variable defaults ────────
-ENV PORT=7860
+ENV PORT=8000
 ENV BOT_NAME="MINIMA V13"
 ENV OWNER_NAME="t.Durani"
 ENV PREFIX="."
 ENV MODE="public"
 
 # ── Start the bot ─────────────────────────
-# Allocate 4GB of RAM (or half of your HF Space limit) to handle massive Buffers
 CMD ["node", "--max-old-space-size=4096", "index.js"]
-
