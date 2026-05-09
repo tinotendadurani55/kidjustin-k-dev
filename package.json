@@ -1,0 +1,22 @@
+{
+  "name": "minima-v13",
+  "version": "13.0.0",
+  "description": "MINIMA V13 — Mini WhatsApp Bot | MINI BOT.ZW",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "axios": "^1.6.0",
+    "express": "^4.18.2",
+    "node-fetch": "^2.7.0",
+    "pino": "^8.15.0",
+    "qrcode-terminal": "^0.12.0",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+ 
