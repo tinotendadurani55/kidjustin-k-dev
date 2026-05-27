@@ -1,5 +1,5 @@
 
-[![Typing SVG](https://readme-typing-svg.demolab.com/?lines=mini+bot+by+t.Durani)](https://git.io/typing-svg)
+[![Typing SVG](https://readme-typing-svg.demolab.com/?lines=mini+bot)](https://git.io/typing-svg)
 ---
 license: apache-2.0
 title: Kidjustin V13
